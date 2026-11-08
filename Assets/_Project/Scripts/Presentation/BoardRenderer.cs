@@ -122,7 +122,8 @@ namespace SovereignOfAshes.Presentation
 
         private static Material CreateMaterial()
         {
-            // "Sprites/Default" é unlit, respeita a cor e existe em qualquer projeto (Built-in ou URP).
+            // "Sprites/Default" é unlit, respeita a cor e vem incluído nos executáveis por padrão.
+            // As alternativas cobrem projetos em que ele foi removido dos "Always Included Shaders".
             Shader shader = Shader.Find("Sprites/Default");
 
             if (shader == null)
@@ -130,7 +131,20 @@ namespace SovereignOfAshes.Presentation
                 shader = Shader.Find("Unlit/Color");
             }
 
-            return new Material(shader);
+            if (shader == null)
+            {
+                shader = Shader.Find("Hidden/Internal-Colored");
+            }
+
+            var material = new Material(shader);
+
+            if (material.HasProperty("_Cull"))
+            {
+                // As fatias são planas e vistas de frente: desliga o descarte de faces para não depender da ordem dos vértices.
+                material.SetFloat("_Cull", 0f);
+            }
+
+            return material;
         }
 
         private static Mesh BuildAnnularSector(float innerRadius, float outerRadius, float centerDegrees, float spanDegrees, int segments)

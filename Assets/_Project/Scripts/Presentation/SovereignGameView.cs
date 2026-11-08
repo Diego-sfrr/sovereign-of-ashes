@@ -29,9 +29,11 @@ namespace SovereignOfAshes.Presentation
         private const float ReferenceHeight = 1080f;
         private const float SidePanelWidth = 360f;
         private const float TopBarHeight = 52f;
-        private const float HandAreaHeight = 250f;
+        private const float HandAreaHeight = 270f;
         private const float CardWidth = 180f;
-        private const float CardHeight = 170f;
+        private const float CardHeight = 196f;
+        private const float LineHeight = 22f;
+        private const float LineStep = 24f;
         private const float CardSpacing = 12f;
         private const int LogLines = 22;
 
@@ -395,18 +397,18 @@ namespace SovereignOfAshes.Presentation
                 string status = civ.IsHeretic
                     ? $"<color={GuiTheme.Hex(GuiTheme.Bad)}><b>HEREGE</b></color>"
                     : $"<color={GuiTheme.Hex(GuiTheme.Good)}>Devota</color>";
-                GUI.Label(new Rect(x, y, w, 20f), $"<b>{civ.Name}</b>  ·  {status}  ·  Poder {civ.MilitaryPower}", _theme.Label);
-                y += 22f;
+                GUI.Label(new Rect(x, y, w, LineHeight), $"<b>{civ.Name}</b>  ·  {status}  ·  Poder {civ.MilitaryPower}", _theme.Label);
+                y += LineStep;
 
-                GUI.Label(new Rect(x, y, 70f, 16f), $"Fé {civ.Faith}", _theme.Small);
-                _theme.DrawBar(new Rect(x + 74f, y + 4f, w - 74f, 9f), (float)civ.Faith / civ.MaxFaith, GuiTheme.FaithColor);
-                y += 18f;
+                GUI.Label(new Rect(x, y, 96f, LineHeight), $"Fé {civ.Faith}/{civ.MaxFaith}", _theme.Small);
+                _theme.DrawBar(new Rect(x + 100f, y + 6f, w - 100f, 9f), (float)civ.Faith / civ.MaxFaith, GuiTheme.FaithColor);
+                y += LineStep;
 
                 float reason = (float)civ.Rationality / civ.MaxRationality;
                 Color reasonColor = Color.Lerp(GuiTheme.RationalityColor, GuiTheme.Bad, reason);
-                GUI.Label(new Rect(x, y, 70f, 16f), $"Razão {civ.Rationality}/{civ.MaxRationality}", _theme.Small);
-                _theme.DrawBar(new Rect(x + 74f, y + 4f, w - 74f, 9f), reason, reasonColor);
-                y += 26f;
+                GUI.Label(new Rect(x, y, 96f, LineHeight), $"Razão {civ.Rationality}/{civ.MaxRationality}", _theme.Small);
+                _theme.DrawBar(new Rect(x + 100f, y + 6f, w - 100f, 9f), reason, reasonColor);
+                y += LineStep + 8f;
             }
 
             y += 6f;
@@ -420,26 +422,26 @@ namespace SovereignOfAshes.Presentation
 
             if (_session.Rules.ActiveCommandments.Count == 0)
             {
-                GUI.Label(new Rect(x, y, w, 18f), "Nenhum ativo.", _theme.Small);
-                y += 20f;
+                GUI.Label(new Rect(x, y, w, LineHeight), "Nenhum ativo.", _theme.Small);
+                y += LineStep;
             }
             else
             {
                 foreach (ICommandment commandment in _session.Rules.ActiveCommandments)
                 {
-                    GUI.Label(new Rect(x, y, w, 18f), $"• {commandment.DisplayName}", _theme.Label);
-                    y += 20f;
+                    GUI.Label(new Rect(x, y, w, LineHeight), $"• {commandment.DisplayName}", _theme.Label);
+                    y += LineStep;
                 }
             }
 
             y += 10f;
             GUI.Label(new Rect(x, y, w, 24f), "Baralho", _theme.Title);
             y += 26f;
-            GUI.Label(new Rect(x, y, w, 18f),
+            GUI.Label(new Rect(x, y, w, LineHeight),
                 $"Compra {_session.Deck.DrawPileCount}  ·  Mão {_session.Deck.Hand.Count}  ·  Descarte {_session.Deck.DiscardPileCount}",
                 _theme.Label);
-            y += 22f;
-            GUI.Label(new Rect(x, y, w, 18f), $"Invasores no tabuleiro: {_session.Invaders.Count}", _theme.Label);
+            y += LineStep;
+            GUI.Label(new Rect(x, y, w, LineHeight), $"Invasores no tabuleiro: {_session.Invaders.Count}", _theme.Label);
         }
 
         private float DrawForecast(float x, float y, float w)
@@ -450,26 +452,31 @@ namespace SovereignOfAshes.Presentation
 
             if (shifts.Count == 0 && spawns.Count == 0)
             {
-                GUI.Label(new Rect(x, y, w, 18f), "Nada previsto.", _theme.Small);
-                return y + 20f;
+                GUI.Label(new Rect(x, y, w, LineHeight), "Nada previsto.", _theme.Small);
+                return y + LineStep;
             }
 
             foreach (RingRotation shift in shifts)
             {
                 int delta = shift.Steps * (int)shift.Direction;
-                GUI.Label(new Rect(x, y, w, 18f), $"Giro: {DisplayNames.Ring(shift.Ring)}, {DisplayNames.Rotation(delta)}", _theme.Label);
-                y += 20f;
+                y = DrawWrappedLine(x, y, w, $"Giro: {DisplayNames.Ring(shift.Ring)}, {DisplayNames.Rotation(delta)}");
             }
 
             foreach (InvaderSpawnOrder spawn in spawns)
             {
-                GUI.Label(new Rect(x, y, w, 18f),
-                    $"Invasão: <color={GuiTheme.Hex(GuiTheme.Bad)}>{spawn.Count}x {spawn.Definition.DisplayName}</color>",
-                    _theme.Label);
-                y += 20f;
+                y = DrawWrappedLine(x, y, w,
+                    $"Invasão: <color={GuiTheme.Hex(GuiTheme.Bad)}>{spawn.Count}x {spawn.Definition.DisplayName}</color>");
             }
 
             return y;
+        }
+
+        private float DrawWrappedLine(float x, float y, float w, string text)
+        {
+            var content = new GUIContent(text);
+            float height = Mathf.Max(LineHeight, _theme.Label.CalcHeight(content, w));
+            GUI.Label(new Rect(x, y, w, height), content, _theme.Label);
+            return y + height + (LineStep - LineHeight);
         }
 
         private void DrawRightPanel(Rect area)
