@@ -126,13 +126,13 @@ namespace SovereignOfAshes.Presentation
             Faith = faithConfig.CreatePool();
             FaithIncome = new FaithIncomeService(Faith, faithConfig, Rules);
 
-            if (Alchemy != null)
-            {
-                Cards = new CardResolver(Board, Alchemy, Faith);
-            }
-
             Invaders = new InvaderRoster(Board);
             _bounty = new InvaderBountyRewarder(Invaders, FaithIncome);
+
+            if (Alchemy != null)
+            {
+                Cards = new CardResolver(Board, Alchemy, Faith, Invaders, Combat);
+            }
 
             Turns = BuildTurnSystem();
             Subscribe();
@@ -226,7 +226,22 @@ namespace SovereignOfAshes.Presentation
                 return;
             }
 
+            // Cartas de ataque miram o invasor mais perigoso; as demais, o primeiro setor do anel do meio.
             TectonicSector target = Board.GetSectorAt(RingType.MiddleCivilization, 0);
+
+            if (_demoCard.RequiresInvader)
+            {
+                InvaderEntity priority = Invaders.SelectPriorityTarget();
+
+                if (priority == null)
+                {
+                    Debug.LogWarning("Nenhum invasor no tabuleiro para atacar.", this);
+                    return;
+                }
+
+                target = priority.Sector;
+            }
+
             CardPlayOutcome outcome = Cards.Play(_demoCard, target);
             Debug.Log($"Carta '{_demoCard.DisplayName}' (custo {_demoCard.Cost}) em {target}: {outcome}. {Faith}");
         }

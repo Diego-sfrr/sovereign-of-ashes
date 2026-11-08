@@ -142,17 +142,114 @@ namespace SovereignOfAshes.Tests
             public ConceptType PrimaryConcept => ConceptType.Iron;
             public TargetRings AllowedRings { get; set; } = TargetRings.All;
             public bool RequiresEmptySector { get; set; }
+            public bool RequiresInvader { get; set; }
             public IReadOnlyList<ITileEffect> Effects { get; set; } = new List<ITileEffect>();
         }
 
         private static (TectonicBoard board, CardResolver resolver) CreateCardSetup(FaithPool wallet = null)
+        {
+            var (board, resolver, _) = CreateCardSetupWithInvaders(wallet);
+            return (board, resolver);
+        }
+
+        private static (TectonicBoard board, CardResolver resolver, InvaderRoster invaders) CreateCardSetupWithInvaders(
+            FaithPool wallet = null, RuleModifierSystem rules = null)
         {
             var iron = new FakeElement("Iron");
             var provider = new FakeProvider();
             provider.Bases[ConceptType.Iron] = iron;
             var board = new TectonicBoard(6);
             var alchemy = new AlchemySystem(provider, new DefaultElementFactory());
-            return (board, new CardResolver(board, alchemy, wallet ?? new FaithPool(99, 99)));
+            var invaders = new InvaderRoster(board);
+            var combat = new CombatResolver(rules ?? new RuleModifierSystem());
+            var resolver = new CardResolver(board, alchemy, wallet ?? new FaithPool(99, 99), invaders, combat);
+            return (board, resolver, invaders);
+        }
+
+        [Test]
+        public void StrikeCard_DamagesInvaderOnTarget_AndRequiresInvader()
+        {
+            var wallet = new FaithPool(10, 10);
+            var (board, resolver, invaders) = CreateCardSetupWithInvaders(wallet);
+            var invaderDef = new SimpleInvaderDefinition("brute", "Bruto", maxHealth: 10, attack: 3, faithBounty: 0);
+            TectonicSector occupied = board.GetSectorAt(RingType.OuterWilderness, 1);
+            invaders.TrySpawn(invaderDef, occupied, out InvaderEntity brute);
+
+            var card = new FakeCard
+            {
+                Cost = 2,
+                RequiresInvader = true,
+                Effects = new List<ITileEffect> { new InvaderStrikeEffect(4, includeNeighbors: false) }
+            };
+
+            TectonicSector empty = board.GetSectorAt(RingType.OuterWilderness, 4);
+            Assert.AreEqual(CardPlayOutcome.NoInvaderOnTarget, resolver.Play(card, empty));
+            Assert.AreEqual(10, wallet.Current);
+
+            Assert.AreEqual(CardPlayOutcome.Played, resolver.Play(card, occupied));
+            Assert.AreEqual(6, brute.CurrentHealth);
+            Assert.AreEqual(8, wallet.Current);
+        }
+
+        [Test]
+        public void StrikeCard_WithNeighbors_KillsAndGrantsBounty()
+        {
+            var wallet = new FaithPool(0, 50);
+            var config = new FaithEconomyConfig(0, 50, 0, 0);
+            var rules = new RuleModifierSystem();
+            var (board, resolver, invaders) = CreateCardSetupWithInvaders(wallet, rules);
+            var bounty = new InvaderBountyRewarder(invaders, new FaithIncomeService(wallet, config, rules));
+            var weakling = new SimpleInvaderDefinition("imp", "Diabrete", maxHealth: 3, attack: 1, faithBounty: 2);
+
+            TectonicSector center = board.GetSectorAt(RingType.MiddleCivilization, 2);
+            invaders.TrySpawn(weakling, center, out _);
+            invaders.TrySpawn(weakling, board.GetSectorAt(RingType.MiddleCivilization, 3), out _); // lateral
+            invaders.TrySpawn(weakling, board.GetSectorAt(RingType.OuterWilderness, 2), out _);    // radial externo
+            invaders.TrySpawn(weakling, board.GetSectorAt(RingType.OuterWilderness, 5), out InvaderEntity far);
+
+            var card = new FakeCard
+            {
+                Cost = 0,
+                Effects = new List<ITileEffect> { new InvaderStrikeEffect(3, includeNeighbors: true) }
+            };
+
+            Assert.AreEqual(CardPlayOutcome.Played, resolver.Play(card, center));
+
+            Assert.AreEqual(1, invaders.Count);
+            Assert.AreSame(far, invaders.Invaders[0]);
+            Assert.AreEqual(6, wallet.Current); // 3 abates x 2 de Fé
+
+            bounty.Dispose();
+        }
+
+        [Test]
+        public void StrikeCard_DamageGoesThroughCommandments()
+        {
+            var rules = new RuleModifierSystem();
+            rules.AddCommandment(new DoubleDamageCommandment());
+            var (board, resolver, invaders) = CreateCardSetupWithInvaders(rules: rules);
+            var def = new SimpleInvaderDefinition("brute", "Bruto", maxHealth: 10, attack: 0, faithBounty: 0);
+            TectonicSector sector = board.GetSectorAt(RingType.OuterWilderness, 0);
+            invaders.TrySpawn(def, sector, out InvaderEntity brute);
+
+            var card = new FakeCard
+            {
+                Cost = 0,
+                Effects = new List<ITileEffect> { new InvaderStrikeEffect(3, includeNeighbors: false) }
+            };
+            resolver.Play(card, sector);
+
+            Assert.AreEqual(4, brute.CurrentHealth); // 3 x 2 = 6 de dano
+        }
+
+        private sealed class DoubleDamageCommandment : CommandmentBase
+        {
+            public DoubleDamageCommandment() : base("double", "Ira Dobrada", 0) { }
+
+            public override bool AppliesTo(RuleContext context) =>
+                context.Channel == RuleChannel.Damage && context.Source is ICardDefinition;
+
+            public override void Apply(RuleContext context) => context.SetAmount(context.Amount * 2);
         }
 
         [Test]

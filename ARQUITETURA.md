@@ -260,6 +260,7 @@ Proteções: chamar `EndPlayerTurn` fora da vez do jogador ou de dentro de uma f
 - **Marcha:** o invasor vai para `GetNeighbors(setor).Inner`, então **a rotação dos anéis decide a rota**. Os invasores são processados do mais interno para o mais externo, para a fila andar no mesmo turno. Setor de destino ocupado = o invasor espera.
 - **Prioridade de alvo** das civilizações devotas: o mais perto do Núcleo; empate → maior ataque; empate → menor vida.
 - **Recompensa:** o `InvaderBountyRewarder` ouve `InvaderSlain` e concede Fé via `FaithIncomeService.GrantFaith`, que passa pelos Mandamentos.
+- **Cartas de ataque:** `InvaderStrikeEffect` (asset `InvaderStrikeEffectSO`) causa dano ao invasor do setor alvo e, se configurado, aos invasores dos vizinhos laterais e radiais. O dano passa pelo `CombatResolver`, com a carta como `Source`, então Mandamentos podem afetar só dano de carta. Mortos são removidos na hora e a recompensa sai automaticamente. Cartas com `RequiresInvader` só podem mirar setores com invasor.
 - **Ondas:** `InvasionWave` define primeiro turno, quantidade, período e crescimento a cada repetição. As posições de surgimento usam um `System.Random` injetado; uma semente fixa torna a partida reproduzível.
 
 ## Economia de Fé

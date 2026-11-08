@@ -2,6 +2,8 @@ using System;
 using SovereignOfAshes.Alchemy;
 using SovereignOfAshes.Board;
 using SovereignOfAshes.Economy;
+using SovereignOfAshes.Invaders;
+using SovereignOfAshes.Rules.Combat;
 
 namespace SovereignOfAshes.Cards
 {
@@ -20,7 +22,10 @@ namespace SovereignOfAshes.Cards
         SectorOccupied = 2,
 
         /// <summary>Não há Fé suficiente para pagar o custo.</summary>
-        InsufficientFaith = 3
+        InsufficientFaith = 3,
+
+        /// <summary>A carta exige um invasor no setor e não há nenhum.</summary>
+        NoInvaderOnTarget = 4
     }
 
     /// <summary>
@@ -32,6 +37,8 @@ namespace SovereignOfAshes.Cards
         private readonly TectonicBoard _board;
         private readonly AlchemySystem _alchemy;
         private readonly IFaithWallet _wallet;
+        private readonly InvaderRoster _invaders;
+        private readonly CombatResolver _combat;
 
         /// <summary>
         /// Disparado após uma carta ser jogada com sucesso. Parâmetros: carta, setor alvo.
@@ -44,12 +51,21 @@ namespace SovereignOfAshes.Cards
         /// <param name="board">Tabuleiro da partida.</param>
         /// <param name="alchemy">Sistema de alquimia.</param>
         /// <param name="wallet">Carteira de Fé que paga o custo das cartas.</param>
+        /// <param name="invaders">Registro de invasores (alvos das cartas de ataque).</param>
+        /// <param name="combat">Resolvedor de combate.</param>
         /// <exception cref="ArgumentNullException">Se alguma dependência for nula.</exception>
-        public CardResolver(TectonicBoard board, AlchemySystem alchemy, IFaithWallet wallet)
+        public CardResolver(
+            TectonicBoard board,
+            AlchemySystem alchemy,
+            IFaithWallet wallet,
+            InvaderRoster invaders,
+            CombatResolver combat)
         {
             _board = board ?? throw new ArgumentNullException(nameof(board));
             _alchemy = alchemy ?? throw new ArgumentNullException(nameof(alchemy));
             _wallet = wallet ?? throw new ArgumentNullException(nameof(wallet));
+            _invaders = invaders ?? throw new ArgumentNullException(nameof(invaders));
+            _combat = combat ?? throw new ArgumentNullException(nameof(combat));
         }
 
         /// <summary>
@@ -81,6 +97,11 @@ namespace SovereignOfAshes.Cards
                 return CardPlayOutcome.SectorOccupied;
             }
 
+            if (card.RequiresInvader && !_invaders.IsOccupied(target))
+            {
+                return CardPlayOutcome.NoInvaderOnTarget;
+            }
+
             if (!_wallet.CanAfford(Math.Max(0, card.Cost)))
             {
                 return CardPlayOutcome.InsufficientFaith;
@@ -90,11 +111,11 @@ namespace SovereignOfAshes.Cards
         }
 
         /// <summary>
-        /// Joga a carta: valida o alvo e executa os efeitos em ordem.
+        /// Joga a carta: valida o alvo, cobra a Fé e executa os efeitos em ordem.
         /// </summary>
         /// <param name="card">Carta.</param>
         /// <param name="target">Setor alvo (deve pertencer ao tabuleiro deste resolvedor).</param>
-        /// <returns>O desfecho; se não for <see cref="CardPlayOutcome.Played"/>, nada foi executado.</returns>
+        /// <returns>O desfecho; se não for <see cref="CardPlayOutcome.Played"/>, nada foi executado nem cobrado.</returns>
         /// <exception cref="ArgumentNullException">Se algum argumento for nulo.</exception>
         /// <exception cref="ArgumentException">Se o setor não pertencer ao tabuleiro.</exception>
         public CardPlayOutcome Play(ICardDefinition card, TectonicSector target)
@@ -116,7 +137,7 @@ namespace SovereignOfAshes.Cards
                 return CardPlayOutcome.InsufficientFaith;
             }
 
-            var context = new TileEffectContext(_board, target, _alchemy);
+            var context = new TileEffectContext(_board, target, _alchemy, _invaders, _combat, card);
 
             foreach (ITileEffect effect in card.Effects)
             {

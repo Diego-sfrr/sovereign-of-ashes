@@ -37,6 +37,9 @@ namespace SovereignOfAshes.Cards
         [Tooltip("Se marcado, a carta não pode ser jogada sobre um setor ocupado.")]
         [SerializeField] private bool _requiresEmptySector;
 
+        [Tooltip("Se marcado, a carta só pode ser jogada sobre um setor com invasor.")]
+        [SerializeField] private bool _requiresInvader;
+
         [Header("Efeitos (executados em ordem)")]
         [SerializeField] private List<CardEffectDefinitionSO> _effects = new List<CardEffectDefinitionSO>();
 
@@ -68,6 +71,9 @@ namespace SovereignOfAshes.Cards
 
         /// <inheritdoc />
         public bool RequiresEmptySector => _requiresEmptySector;
+
+        /// <inheritdoc />
+        public bool RequiresInvader => _requiresInvader;
 
         /// <inheritdoc />
         /// <remarks>

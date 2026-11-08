@@ -88,6 +88,9 @@ namespace SovereignOfAshes.Cards
         /// <summary>Se a carta só pode ser jogada em setores vazios.</summary>
         bool RequiresEmptySector { get; }
 
+        /// <summary>Se a carta só pode ser jogada em um setor ocupado por um invasor (cartas de ataque).</summary>
+        bool RequiresInvader { get; }
+
         /// <summary>Efeitos executados em ordem quando a carta é jogada.</summary>
         IReadOnlyList<ITileEffect> Effects { get; }
     }
