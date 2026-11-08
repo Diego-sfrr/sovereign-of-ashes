@@ -60,6 +60,7 @@ namespace SovereignOfAshes.EditorTools
             PlayerSettings.defaultScreenWidth = 1600;
             PlayerSettings.defaultScreenHeight = 900;
             PlayerSettings.resizableWindow = true;
+            PlayerSettings.runInBackground = true; // o jogo continua animando mesmo sem foco (e o modo de captura funciona)
 
             var options = new BuildPlayerOptions
             {

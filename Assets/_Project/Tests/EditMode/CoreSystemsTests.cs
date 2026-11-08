@@ -304,6 +304,47 @@ namespace SovereignOfAshes.Tests
         }
 
         [Test]
+        public void PixelSprites_AllRasterize_AndCatalogReferencesExist()
+        {
+            int count = 0;
+
+            foreach (var sprite in SovereignOfAshes.Presentation.Art.PixelSprites.All)
+            {
+                var pixels = SovereignOfAshes.Presentation.Art.PixelGrid.Rasterize(sprite, SovereignOfAshes.Presentation.Art.PixelPalette.Default);
+                Assert.AreEqual(16, sprite.Width, sprite.Id);
+                Assert.AreEqual(16, sprite.Height, sprite.Id);
+                Assert.AreEqual(256, pixels.Length, sprite.Id);
+                count++;
+            }
+
+            Assert.Greater(count, 20);
+
+            foreach (string id in SovereignOfAshes.Presentation.Art.ArtCatalog.ReferencedSprites)
+            {
+                Assert.IsTrue(SovereignOfAshes.Presentation.Art.PixelSprites.TryGet(id, out _), $"sprite ausente: {id}");
+            }
+        }
+
+        [Test]
+        public void CaptureHarness_ReadsDirectoryOnlyWhenRequested()
+        {
+            Assert.IsNull(SovereignOfAshes.Presentation.SovereignCaptureHarness.ReadDirectory(new[] { "game.exe" }));
+            Assert.IsNull(SovereignOfAshes.Presentation.SovereignCaptureHarness.ReadDirectory(new[] { "game.exe", "-sovereign-capture" }));
+            Assert.AreEqual(@"C:\shots", SovereignOfAshes.Presentation.SovereignCaptureHarness.ReadDirectory(
+                new[] { "game.exe", "-screen-width", "1600", "-sovereign-capture", @"C:\shots" }));
+        }
+
+        [Test]
+        public void PixelGrid_RasterizesBottomUp()
+        {
+            var sprite = new SovereignOfAshes.Presentation.Art.PixelSpriteDefinition("t", "k.", "..");
+            var pixels = SovereignOfAshes.Presentation.Art.PixelGrid.Rasterize(sprite, SovereignOfAshes.Presentation.Art.PixelPalette.Default);
+
+            Assert.AreEqual(255, pixels[2].A); // fileira de cima ("k.") vira y = 1 no Unity
+            Assert.AreEqual(0, pixels[0].A);
+        }
+
+        [Test]
         public void BoardLayout_PicksRingAndPositionClockwiseFromTop()
         {
             var layout = new SovereignOfAshes.Presentation.BoardLayout(8, 3);

@@ -5,6 +5,8 @@ using SovereignOfAshes.Cards;
 using SovereignOfAshes.Civilization;
 using SovereignOfAshes.Core;
 using SovereignOfAshes.Invaders;
+using SovereignOfAshes.Presentation.Art;
+using SovereignOfAshes.Presentation.Fx;
 using SovereignOfAshes.Rules;
 using SovereignOfAshes.Session;
 using SovereignOfAshes.Turns;
@@ -13,13 +15,10 @@ using UnityEngine;
 namespace SovereignOfAshes.Presentation
 {
     /// <summary>
-    /// Interface visual jogável, sem nenhuma configuração: desenha o tabuleiro (malhas geradas) e o HUD (IMGUI),
-    /// anima rotações e marchas, e traduz cliques em ações do <see cref="PlayerActionService"/>.
+    /// Interface jogável sem configuração: tabuleiro texturizado (malhas geradas), arte em pixel art,
+    /// cartas ilustradas, efeitos (números flutuantes, partículas, tremor, brasas) e HUD em IMGUI.
     /// <para>Uso: adicione este componente a um GameObject vazio e aperte Play.</para>
-    /// <para>
-    /// Toda regra vive na <see cref="GameSession"/>; esta classe só lê estado e chama ações.
-    /// O IMGUI funciona com qualquer sistema de Input (antigo ou novo) e não exige pacotes.
-    /// </para>
+    /// <para>Toda regra vive na <see cref="GameSession"/>; esta classe só lê estado e chama ações.</para>
     /// </summary>
     [RequireComponent(typeof(SovereignBootstrapper))]
     [DefaultExecutionOrder(100)]
@@ -27,59 +26,75 @@ namespace SovereignOfAshes.Presentation
     public sealed class SovereignGameView : MonoBehaviour
     {
         private const float ReferenceHeight = 1080f;
-        private const float SidePanelWidth = 360f;
-        private const float TopBarHeight = 52f;
-        private const float HandAreaHeight = 270f;
-        private const float CardWidth = 180f;
-        private const float CardHeight = 196f;
+        private const float SidePanelWidth = 340f;
+        private const float TopBarHeight = 64f;
+        private const float HandAreaHeight = 290f;
+        private const float CardWidth = 178f;
+        private const float CardHeight = 240f;
+        private const float CardSpacing = 20f;
         private const float LineHeight = 22f;
         private const float LineStep = 24f;
-        private const float CardSpacing = 12f;
-        private const int LogLines = 22;
+        private const int LogLines = 24;
+        private const float BannerDuration = 1.7f;
 
-        private static readonly Color InnerRingColor = new Color(0.30f, 0.23f, 0.12f);
-        private static readonly Color MiddleRingColor = new Color(0.11f, 0.21f, 0.23f);
-        private static readonly Color OuterRingColor = new Color(0.25f, 0.10f, 0.09f);
-        private static readonly Color ConceptTint = new Color(0.62f, 0.52f, 0.26f);
-        private static readonly Color EntityTint = new Color(0.22f, 0.52f, 0.28f);
-        private static readonly Color StructureTint = new Color(0.36f, 0.42f, 0.58f);
-        private static readonly Color TargetTint = new Color(0.95f, 0.78f, 0.35f);
+        private static readonly Color InnerRingTint = new Color(1.00f, 0.86f, 0.62f);
+        private static readonly Color MiddleRingTint = new Color(0.62f, 0.86f, 0.86f);
+        private static readonly Color OuterRingTint = new Color(0.95f, 0.62f, 0.56f);
+        private static readonly Color TargetTint = new Color(1f, 0.85f, 0.4f);
 
         [Header("Câmera")]
-        [SerializeField] private float _cameraSize = 6.2f;
-        [SerializeField] private float _cameraOffsetY = -1.15f;
+        [SerializeField] private float _cameraSize = 6.4f;
+        [SerializeField] private float _cameraOffsetY = -1.25f;
 
         [Header("Animação")]
         [Tooltip("Velocidade da rotação visual dos anéis, em casas por segundo.")]
-        [SerializeField, Min(0.1f)] private float _rotationSpeed = 2.5f;
+        [SerializeField, Min(0.1f)] private float _rotationSpeed = 2.2f;
 
         [Tooltip("Velocidade da marcha visual dos invasores, em unidades por segundo.")]
-        [SerializeField, Min(0.1f)] private float _invaderSpeed = 3.5f;
+        [SerializeField, Min(0.1f)] private float _invaderSpeed = 3.2f;
 
         private readonly Dictionary<int, InvaderVisual> _invaderVisuals = new Dictionary<int, InvaderVisual>();
+        private readonly Dictionary<int, int> _lastInvaderHealth = new Dictionary<int, int>();
+        private readonly Dictionary<int, float> _invaderHitTime = new Dictionary<int, float>();
         private readonly HashSet<TectonicSector> _validTargets = new HashSet<TectonicSector>();
-        private readonly List<int> _staleInvaderIds = new List<int>();
+        private readonly List<int> _staleIds = new List<int>();
         private readonly StringBuilder _text = new StringBuilder();
+        private readonly FloatingTextFx _floatingText = new FloatingTextFx();
+        private readonly PuffFx _puffs = new PuffFx();
+        private readonly EmberFx _embers = new EmberFx(60);
+        private readonly ScreenShake _shake = new ScreenShake();
 
         private SovereignBootstrapper _bootstrapper;
         private GameSession _session;
         private BoardLayout _layout;
         private BoardRenderer _board;
+        private ArtLibrary _art;
+        private BoardSkin _skin;
         private GuiTheme _theme;
         private Camera _camera;
+        private Vector3 _cameraBase;
         private float[] _visualOffsets;
         private float[] _targetOffsets;
         private int _selectedCard = -1;
+        private int _hoveredCard = -1;
         private TectonicSector _hovered;
         private string _hint = string.Empty;
         private float _hintUntil;
         private float _guiScale = 1f;
+        private int _lastCoreHealth;
+        private int _lastFaith;
+        private int _lastTurn;
+        private float _bannerStart = -10f;
+        private Vector2 _faithGuiPosition = new Vector2(700f, 40f);
 
         private struct InvaderVisual
         {
             public Vector2 Position;
             public RingType Ring;
         }
+
+        /// <summary>Partida exibida.</summary>
+        internal GameSession Session => _session;
 
         private bool IsAnimating
         {
@@ -102,12 +117,22 @@ namespace SovereignOfAshes.Presentation
             }
         }
 
+        /// <summary>Seleciona uma carta da mão (usado pelo modo de captura automática).</summary>
+        /// <param name="handIndex">Índice na mão.</param>
+        internal void SelectCardForCapture(int handIndex) => _selectedCard = handIndex;
+
+        /// <summary>Limpa a seleção (usado pelo modo de captura automática).</summary>
+        internal void ClearSelection() => _selectedCard = -1;
+
         private void Start()
         {
             _bootstrapper = GetComponent<SovereignBootstrapper>();
             _bootstrapper.SessionCreated += Bind;
+            _art = new ArtLibrary();
+            _skin = CreateSkin(_art);
             SetupCamera();
             Bind(_bootstrapper.Session);
+            SovereignCaptureHarness.AttachIfRequested(gameObject);
         }
 
         private void OnDestroy()
@@ -119,9 +144,23 @@ namespace SovereignOfAshes.Presentation
 
             Unbind();
             _theme?.Dispose();
+            _art?.Dispose();
         }
 
         // ------------------------------------------------------------------ Ligação com a partida
+
+        private static BoardSkin CreateSkin(ArtLibrary art)
+        {
+            var rings = new[]
+            {
+                art.CreateTerrain(32, new Color(0.30f, 0.20f, 0.08f), new Color(0.48f, 0.34f, 0.14f), new Color(0.66f, 0.50f, 0.22f), 11),
+                art.CreateTerrain(32, new Color(0.08f, 0.17f, 0.18f), new Color(0.14f, 0.28f, 0.28f), new Color(0.22f, 0.40f, 0.36f), 23),
+                art.CreateTerrain(32, new Color(0.20f, 0.07f, 0.07f), new Color(0.33f, 0.12f, 0.10f), new Color(0.46f, 0.20f, 0.14f), 37)
+            };
+
+            Texture2D backdrop = art.CreateVignette(128, new Color(0.16f, 0.09f, 0.16f), new Color(0.015f, 0.01f, 0.02f));
+            return new BoardSkin(rings, backdrop);
+        }
 
         private void Bind(GameSession session)
         {
@@ -134,7 +173,7 @@ namespace SovereignOfAshes.Presentation
             }
 
             _layout = new BoardLayout(_session.Board.SectorsPerRing, _session.Board.Rings.Count);
-            _board = new BoardRenderer(_layout, transform);
+            _board = new BoardRenderer(_layout, transform, _skin);
 
             int ringCount = _session.Board.Rings.Count;
             _visualOffsets = new float[ringCount];
@@ -147,7 +186,12 @@ namespace SovereignOfAshes.Presentation
             }
 
             _invaderVisuals.Clear();
+            _lastInvaderHealth.Clear();
+            _invaderHitTime.Clear();
             _selectedCard = -1;
+            _lastCoreHealth = _session.DivineCore.CurrentHealth;
+            _lastFaith = _session.Faith.Current;
+            _lastTurn = _session.Turns.TurnNumber;
             _session.Board.RingRotated += OnRingRotated;
         }
 
@@ -183,7 +227,8 @@ namespace SovereignOfAshes.Presentation
             _camera.orthographicSize = _cameraSize;
             _camera.clearFlags = CameraClearFlags.SolidColor;
             _camera.backgroundColor = GuiTheme.Background;
-            _camera.transform.position = new Vector3(0f, _cameraOffsetY, -10f);
+            _cameraBase = new Vector3(0f, _cameraOffsetY, -10f);
+            _camera.transform.position = _cameraBase;
             _camera.transform.rotation = Quaternion.identity;
         }
 
@@ -196,15 +241,92 @@ namespace SovereignOfAshes.Presentation
                 return;
             }
 
-            AnimateRings();
-            AnimateInvaders();
+            float deltaTime = Time.deltaTime;
+            DetectChanges();
+            AnimateRings(deltaTime);
+            AnimateInvaders(deltaTime);
+
+            _floatingText.Update(deltaTime);
+            _puffs.Update(deltaTime);
+            _embers.Update(deltaTime);
+            Vector2 shake = _shake.Update(deltaTime, 0.35f);
+            _camera.transform.position = new Vector3(_cameraBase.x + shake.x, _cameraBase.y + shake.y, _cameraBase.z);
+
             RefreshValidTargets();
             PaintBoard();
         }
 
-        private void AnimateRings()
+        private void DetectChanges()
         {
-            float step = _rotationSpeed * Time.deltaTime;
+            // Invasores feridos ou destruídos.
+            _staleIds.Clear();
+            _staleIds.AddRange(_lastInvaderHealth.Keys);
+
+            foreach (InvaderEntity invader in _session.Invaders.Invaders)
+            {
+                _staleIds.Remove(invader.Id);
+
+                if (_lastInvaderHealth.TryGetValue(invader.Id, out int previous) && invader.CurrentHealth < previous
+                    && _invaderVisuals.TryGetValue(invader.Id, out InvaderVisual visual))
+                {
+                    _floatingText.Spawn(visual.Position, true, $"-{previous - invader.CurrentHealth}", GuiTheme.Bad);
+                    _invaderHitTime[invader.Id] = Time.time;
+                }
+
+                _lastInvaderHealth[invader.Id] = invader.CurrentHealth;
+            }
+
+            foreach (int id in _staleIds)
+            {
+                if (_invaderVisuals.TryGetValue(id, out InvaderVisual visual))
+                {
+                    _puffs.Burst(visual.Position, new Color(0.55f, 0.5f, 0.6f), 22);
+                    _puffs.Burst(visual.Position, GuiTheme.Gold, 8);
+                }
+
+                _lastInvaderHealth.Remove(id);
+                _invaderHitTime.Remove(id);
+            }
+
+            // Núcleo.
+            int core = _session.DivineCore.CurrentHealth;
+
+            if (core < _lastCoreHealth)
+            {
+                _floatingText.Spawn(Vector2.zero, true, $"-{_lastCoreHealth - core}", GuiTheme.Bad, 1.6f);
+                _puffs.Burst(Vector2.zero, GuiTheme.Bad, 16);
+                _shake.Add(0.55f);
+            }
+            else if (core > _lastCoreHealth)
+            {
+                _floatingText.Spawn(Vector2.zero, true, $"+{core - _lastCoreHealth}", GuiTheme.Good, 1.6f);
+                _puffs.Burst(Vector2.zero, GuiTheme.Good, 14);
+            }
+
+            _lastCoreHealth = core;
+
+            // Fé.
+            int faith = _session.Faith.Current;
+
+            if (faith != _lastFaith)
+            {
+                int delta = faith - _lastFaith;
+                _floatingText.Spawn(_faithGuiPosition + new Vector2(0f, 96f), false,
+                    delta > 0 ? $"+{delta} Fé" : $"{delta} Fé", delta > 0 ? GuiTheme.FaithColor : GuiTheme.TextDim);
+                _lastFaith = faith;
+            }
+
+            // Novo turno.
+            if (_session.Turns.TurnNumber != _lastTurn)
+            {
+                _lastTurn = _session.Turns.TurnNumber;
+                _bannerStart = Time.time;
+            }
+        }
+
+        private void AnimateRings(float deltaTime)
+        {
+            float step = _rotationSpeed * deltaTime;
 
             for (int i = 0; i < _visualOffsets.Length; i++)
             {
@@ -213,11 +335,11 @@ namespace SovereignOfAshes.Presentation
             }
         }
 
-        private void AnimateInvaders()
+        private void AnimateInvaders(float deltaTime)
         {
-            float step = _invaderSpeed * Time.deltaTime;
-            _staleInvaderIds.Clear();
-            _staleInvaderIds.AddRange(_invaderVisuals.Keys);
+            float step = _invaderSpeed * deltaTime;
+            _staleIds.Clear();
+            _staleIds.AddRange(_invaderVisuals.Keys);
 
             foreach (InvaderEntity invader in _session.Invaders.Invaders)
             {
@@ -227,19 +349,18 @@ namespace SovereignOfAshes.Presentation
                 }
 
                 Vector2 target = GetPlateCenter(invader.Sector);
-                _staleInvaderIds.Remove(invader.Id);
+                _staleIds.Remove(invader.Id);
 
                 if (!_invaderVisuals.TryGetValue(invader.Id, out InvaderVisual visual))
                 {
                     // Recém-chegado: entra vindo de fora do tabuleiro.
-                    visual.Position = target * 1.25f;
+                    visual.Position = target * 1.3f;
                     visual.Ring = invader.Sector.Ring;
                 }
 
                 if (visual.Ring == invader.Sector.Ring && Vector2.Distance(visual.Position, target) < 0.75f)
                 {
-                    // Mesmo anel: acompanha a rotação da placa exatamente.
-                    visual.Position = target;
+                    visual.Position = target; // mesmo anel: acompanha a rotação da placa
                 }
                 else
                 {
@@ -254,7 +375,7 @@ namespace SovereignOfAshes.Presentation
                 _invaderVisuals[invader.Id] = visual;
             }
 
-            foreach (int id in _staleInvaderIds)
+            foreach (int id in _staleIds)
             {
                 _invaderVisuals.Remove(id);
             }
@@ -291,23 +412,18 @@ namespace SovereignOfAshes.Presentation
 
             foreach (TectonicSector sector in _session.Board.GetAllSectors())
             {
-                Color color = GetRingColor(sector.Ring);
-
-                if (!sector.IsEmpty)
-                {
-                    color = Color.Lerp(color, GetContentTint(sector.Content.Definition.Kind), 0.45f);
-                }
+                Color color = GetRingTint(sector.Ring);
 
                 if (selecting)
                 {
                     color = _validTargets.Contains(sector)
-                        ? Color.Lerp(color, TargetTint, 0.35f + 0.25f * pulse)
-                        : color * 0.55f;
+                        ? Color.Lerp(color, TargetTint, 0.45f + 0.35f * pulse) * 1.15f
+                        : color * 0.45f;
                 }
 
                 if (ReferenceEquals(sector, _hovered))
                 {
-                    color = Color.Lerp(color, Color.white, 0.18f);
+                    color = Color.Lerp(color, Color.white, 0.25f);
                 }
 
                 color.a = 1f;
@@ -315,8 +431,8 @@ namespace SovereignOfAshes.Presentation
             }
 
             float health = (float)_session.DivineCore.CurrentHealth / _session.DivineCore.MaxHealth;
-            Color core = Color.Lerp(new Color(0.55f, 0.08f, 0.06f), GuiTheme.Gold, health);
-            core = Color.Lerp(core, Color.white, 0.08f * pulse);
+            Color core = Color.Lerp(new Color(0.5f, 0.06f, 0.05f), new Color(0.95f, 0.75f, 0.3f), health);
+            core = Color.Lerp(core, Color.white, 0.12f * pulse);
             core.a = 1f;
             _board.SetCoreColor(core);
         }
@@ -342,10 +458,16 @@ namespace SovereignOfAshes.Presentation
 
             UpdateHover(width, height);
 
+            _embers.Draw(width, height, _theme.White);
             DrawBoardOverlay();
+            _puffs.Draw(WorldToGui, _theme.White);
+
             DrawTopBar(width);
-            DrawLeftPanel(new Rect(16f, TopBarHeight + 12f, SidePanelWidth, height - TopBarHeight - HandAreaHeight - 24f));
-            DrawRightPanel(new Rect(width - SidePanelWidth - 16f, TopBarHeight + 12f, SidePanelWidth, height - TopBarHeight - HandAreaHeight - 24f));
+            float panelHeight = height - TopBarHeight - HandAreaHeight - 20f;
+            DrawLeftPanel(new Rect(14f, TopBarHeight + 12f, SidePanelWidth, panelHeight));
+            DrawRightPanel(new Rect(width - SidePanelWidth - 14f, TopBarHeight + 12f, SidePanelWidth, panelHeight));
+            DrawTurnBanner(width);
+            _floatingText.Draw(WorldToGui, _theme.FloatText);
 
             if (_session.Turns.State == TurnState.GameOver)
             {
@@ -361,64 +483,82 @@ namespace SovereignOfAshes.Presentation
 
         private void DrawTopBar(float width)
         {
-            GUI.Box(new Rect(0f, 0f, width, TopBarHeight), GUIContent.none, _theme.Panel);
+            _theme.Frame(new Rect(0f, 0f, width, TopBarHeight), GuiTheme.Bronze, new Color(0.06f, 0.05f, 0.07f, 0.97f), 3f);
+            _theme.Image(new Rect(18f, 12f, 40f, 40f), _art.Sprite("core"), Color.white);
+            _theme.ShadowText(new Rect(66f, 12f, 280f, 40f), "SOVEREIGN OF ASHES", _theme.Number, GuiTheme.Gold);
 
             TurnSystem turns = _session.Turns;
+            float x = width * 0.5f - 330f;
+
+            string goal = _session.TurnsToSurvive > 0 ? $" / {_session.TurnsToSurvive}" : string.Empty;
+            _theme.ShadowText(new Rect(x, 12f, 200f, 40f), $"TURNO {turns.TurnNumber}{goal}", _theme.Number, Color.white);
+            x += 200f;
+
+            _theme.Image(new Rect(x, 14f, 36f, 36f), _art.Sprite("gem"), Color.white);
+            _theme.ShadowText(new Rect(x + 42f, 12f, 120f, 40f), $"{_session.Faith.Current}/{_session.Faith.Capacity}", _theme.Number, GuiTheme.FaithColor);
+            _faithGuiPosition = new Vector2(x + 70f, 30f);
+            x += 160f;
+
+            _theme.Image(new Rect(x, 14f, 36f, 36f), _art.Sprite("heart"), Color.white);
+            _theme.ShadowText(new Rect(x + 42f, 12f, 120f, 40f), $"{_session.DivineCore.CurrentHealth}/{_session.DivineCore.MaxHealth}", _theme.Number, GuiTheme.Bad);
+            x += 160f;
+
             string state;
+            Color stateColor;
 
             switch (turns.State)
             {
-                case TurnState.AwaitingPlayer: state = $"<color={GuiTheme.Hex(GuiTheme.Good)}>Sua vez</color>"; break;
-                case TurnState.GameOver: state = "Fim de jogo"; break;
-                default: state = "Resolvendo..."; break;
+                case TurnState.AwaitingPlayer: state = "SUA VEZ"; stateColor = GuiTheme.Good; break;
+                case TurnState.GameOver: state = "FIM DE JOGO"; stateColor = GuiTheme.Gold; break;
+                default: state = "RESOLVENDO..."; stateColor = GuiTheme.TextDim; break;
             }
 
-            string goal = _session.TurnsToSurvive > 0 ? $" / {_session.TurnsToSurvive}" : string.Empty;
-            string faith = $"<color={GuiTheme.Hex(GuiTheme.FaithColor)}>Fé {_session.Faith.Current}/{_session.Faith.Capacity}</color>";
-            string core = $"Núcleo {_session.DivineCore.CurrentHealth}/{_session.DivineCore.MaxHealth} HP";
-
-            GUI.Label(new Rect(20f, 12f, 260f, 30f), $"<b>SOVEREIGN OF ASHES</b>", _theme.Title);
-            GUI.Label(new Rect(300f, 14f, width - 320f, 30f),
-                $"<b>Turno {turns.TurnNumber}{goal}</b>     {faith}     {core}     {state}", _theme.Label);
+            _theme.ShadowText(new Rect(x, 12f, 220f, 40f), state, _theme.Number, stateColor);
         }
 
         private void DrawLeftPanel(Rect area)
         {
-            GUI.Box(area, GUIContent.none, _theme.Panel);
-            float x = area.x + 14f;
-            float w = area.width - 28f;
-            float y = area.y + 12f;
+            _theme.Panel(area);
+            float x = area.x + 16f;
+            float w = area.width - 32f;
+            float y = area.y + 14f;
 
-            GUI.Label(new Rect(x, y, w, 24f), "Civilizações", _theme.Title);
-            y += 28f;
+            GUI.Label(new Rect(x, y, w, 26f), "Civilizações", _theme.Title);
+            y += 32f;
 
             foreach (CivilizationEntity civ in _session.Civilizations)
             {
+                var portrait = new Rect(x, y, 52f, 52f);
+                _theme.Frame(portrait, civ.IsHeretic ? GuiTheme.Bad : GuiTheme.Bronze, new Color(0.05f, 0.04f, 0.06f), 2f);
+                _theme.Image(new Rect(portrait.x + 6f, portrait.y + 6f, 40f, 40f), _art.Sprite(civ.IsHeretic ? "skull" : "saint"), Color.white);
+
+                float tx = x + 62f;
+                float tw = w - 62f;
                 string status = civ.IsHeretic
                     ? $"<color={GuiTheme.Hex(GuiTheme.Bad)}><b>HEREGE</b></color>"
                     : $"<color={GuiTheme.Hex(GuiTheme.Good)}>Devota</color>";
-                GUI.Label(new Rect(x, y, w, LineHeight), $"<b>{civ.Name}</b>  ·  {status}  ·  Poder {civ.MilitaryPower}", _theme.Label);
-                y += LineStep;
+                GUI.Label(new Rect(tx, y, tw, LineHeight), $"<b>{civ.Name}</b>", _theme.Label);
+                GUI.Label(new Rect(tx, y + 22f, tw, LineHeight), $"{status}  ·  Poder <b>{civ.MilitaryPower}</b>", _theme.Label);
+                y += 60f;
 
                 GUI.Label(new Rect(x, y, 96f, LineHeight), $"Fé {civ.Faith}/{civ.MaxFaith}", _theme.Small);
-                _theme.DrawBar(new Rect(x + 100f, y + 6f, w - 100f, 9f), (float)civ.Faith / civ.MaxFaith, GuiTheme.FaithColor);
+                _theme.DrawBar(new Rect(x + 100f, y + 5f, w - 100f, 11f), (float)civ.Faith / civ.MaxFaith, GuiTheme.FaithColor);
                 y += LineStep;
 
                 float reason = (float)civ.Rationality / civ.MaxRationality;
                 Color reasonColor = Color.Lerp(GuiTheme.RationalityColor, GuiTheme.Bad, reason);
                 GUI.Label(new Rect(x, y, 96f, LineHeight), $"Razão {civ.Rationality}/{civ.MaxRationality}", _theme.Small);
-                _theme.DrawBar(new Rect(x + 100f, y + 6f, w - 100f, 9f), reason, reasonColor);
-                y += LineStep + 8f;
+                _theme.DrawBar(new Rect(x + 100f, y + 5f, w - 100f, 11f), reason, reasonColor);
+                y += LineStep + 12f;
             }
 
-            y += 6f;
-            GUI.Label(new Rect(x, y, w, 24f), "Ao fim deste turno", _theme.Title);
-            y += 26f;
+            GUI.Label(new Rect(x, y, w, 26f), "Ao fim deste turno", _theme.Title);
+            y += 30f;
             y = DrawForecast(x, y, w);
 
             y += 10f;
-            GUI.Label(new Rect(x, y, w, 24f), "Mandamentos", _theme.Title);
-            y += 26f;
+            GUI.Label(new Rect(x, y, w, 26f), "Mandamentos", _theme.Title);
+            y += 30f;
 
             if (_session.Rules.ActiveCommandments.Count == 0)
             {
@@ -429,19 +569,17 @@ namespace SovereignOfAshes.Presentation
             {
                 foreach (ICommandment commandment in _session.Rules.ActiveCommandments)
                 {
-                    GUI.Label(new Rect(x, y, w, LineHeight), $"• {commandment.DisplayName}", _theme.Label);
-                    y += LineStep;
+                    y = DrawWrappedLine(x, y, w, $"• {commandment.DisplayName}");
                 }
             }
 
             y += 10f;
-            GUI.Label(new Rect(x, y, w, 24f), "Baralho", _theme.Title);
-            y += 26f;
-            GUI.Label(new Rect(x, y, w, LineHeight),
+            GUI.Label(new Rect(x, y, w, 26f), "Baralho", _theme.Title);
+            y += 30f;
+            _theme.Image(new Rect(x, y - 2f, 26f, 26f), _art.Sprite("book"), Color.white);
+            GUI.Label(new Rect(x + 32f, y, w - 32f, LineHeight),
                 $"Compra {_session.Deck.DrawPileCount}  ·  Mão {_session.Deck.Hand.Count}  ·  Descarte {_session.Deck.DiscardPileCount}",
                 _theme.Label);
-            y += LineStep;
-            GUI.Label(new Rect(x, y, w, LineHeight), $"Invasores no tabuleiro: {_session.Invaders.Count}", _theme.Label);
         }
 
         private float DrawForecast(float x, float y, float w)
@@ -464,8 +602,10 @@ namespace SovereignOfAshes.Presentation
 
             foreach (InvaderSpawnOrder spawn in spawns)
             {
-                y = DrawWrappedLine(x, y, w,
-                    $"Invasão: <color={GuiTheme.Hex(GuiTheme.Bad)}>{spawn.Count}x {spawn.Definition.DisplayName}</color>");
+                _theme.Image(new Rect(x, y - 3f, 28f, 28f), _art.Invader(spawn.Definition), Color.white);
+                y = DrawWrappedLine(x + 34f, y + 2f, w - 34f,
+                    $"<color={GuiTheme.Hex(GuiTheme.Bad)}>{spawn.Count}x {spawn.Definition.DisplayName}</color> invade");
+                y += 4f;
             }
 
             return y;
@@ -474,28 +614,28 @@ namespace SovereignOfAshes.Presentation
         private float DrawWrappedLine(float x, float y, float w, string text)
         {
             var content = new GUIContent(text);
-            float height = Mathf.Max(LineHeight, _theme.Label.CalcHeight(content, w));
-            GUI.Label(new Rect(x, y, w, height), content, _theme.Label);
-            return y + height + (LineStep - LineHeight);
+            float lineHeight = Mathf.Max(LineHeight, _theme.Label.CalcHeight(content, w));
+            GUI.Label(new Rect(x, y, w, lineHeight), content, _theme.Label);
+            return y + lineHeight + (LineStep - LineHeight);
         }
 
         private void DrawRightPanel(Rect area)
         {
-            GUI.Box(area, GUIContent.none, _theme.Panel);
-            float x = area.x + 14f;
-            float w = area.width - 28f;
-            float y = area.y + 12f;
+            _theme.Panel(area);
+            float x = area.x + 16f;
+            float w = area.width - 32f;
+            float y = area.y + 14f;
 
-            GUI.Label(new Rect(x, y, w, 24f), "Crônica", _theme.Title);
-            y += 28f;
+            GUI.Label(new Rect(x, y, w, 26f), "Crônica", _theme.Title);
+            y += 32f;
 
             IReadOnlyList<LogEntry> entries = _session.Log.Entries;
-            float bottom = area.yMax - 10f;
+            float bottom = area.yMax - 12f;
 
             for (int i = entries.Count - 1; i >= 0 && entries.Count - i <= LogLines; i--)
             {
                 LogEntry entry = entries[i];
-                GUIContent content = new GUIContent($"<color={GuiTheme.Hex(GetToneColor(entry.Tone))}>{entry.Text}</color>");
+                var content = new GUIContent($"<color={GuiTheme.Hex(GetToneColor(entry.Tone))}>{entry.Text}</color>");
                 float lineHeight = _theme.Label.CalcHeight(content, w);
 
                 if (y + lineHeight > bottom)
@@ -504,8 +644,28 @@ namespace SovereignOfAshes.Presentation
                 }
 
                 GUI.Label(new Rect(x, y, w, lineHeight), content, _theme.Label);
-                y += lineHeight + 2f;
+                y += lineHeight + 3f;
             }
+        }
+
+        private void DrawTurnBanner(float width)
+        {
+            float t = (Time.time - _bannerStart) / BannerDuration;
+
+            if (t < 0f || t > 1f || _session.Turns.State == TurnState.GameOver)
+            {
+                return;
+            }
+
+            float alpha = t < 0.15f ? t / 0.15f : t > 0.75f ? 1f - (t - 0.75f) / 0.25f : 1f;
+            float y = 330f;
+            float x = SidePanelWidth + 28f;
+            float w = width - (SidePanelWidth + 28f) * 2f;
+            var gold = new Color(GuiTheme.Gold.r, GuiTheme.Gold.g, GuiTheme.Gold.b, alpha);
+            _theme.Fill(new Rect(x, y, w, 110f), new Color(0f, 0f, 0f, 0.6f * alpha));
+            _theme.Fill(new Rect(x, y, w, 3f), gold);
+            _theme.Fill(new Rect(x, y + 107f, w, 3f), gold);
+            _theme.ShadowText(new Rect(x, y, w, 110f), $"TURNO {_session.Turns.TurnNumber}", _theme.Banner, gold);
         }
 
         private void DrawHand(float width, float height)
@@ -514,23 +674,43 @@ namespace SovereignOfAshes.Presentation
             bool canAct = _session.Player.CanAct && !IsAnimating;
             float handWidth = hand.Count * CardWidth + Mathf.Max(0, hand.Count - 1) * CardSpacing;
             float startX = (width - handWidth) * 0.5f;
-            float y = height - CardHeight - 24f;
+            float baseY = height - CardHeight - 16f;
+            Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
+
+            _hoveredCard = -1;
+
+            for (int i = 0; i < hand.Count; i++)
+            {
+                var slot = new Rect(startX + i * (CardWidth + CardSpacing), baseY - 24f, CardWidth, CardHeight + 24f);
+
+                if (slot.Contains(mouse))
+                {
+                    _hoveredCard = i;
+                }
+            }
 
             for (int i = 0; i < hand.Count; i++)
             {
                 ICardDefinition card = hand[i];
-                var rect = new Rect(startX + i * (CardWidth + CardSpacing), y, CardWidth, CardHeight);
-
-                if (i == _selectedCard)
-                {
-                    rect.y -= 18f;
-                }
-
                 bool affordable = _session.Faith.CanAfford(card.Cost);
-                GUI.enabled = canAct && affordable;
-                GUIStyle style = i == _selectedCard ? _theme.CardSelected : _theme.Card;
+                bool usable = canAct && affordable;
+                bool selected = i == _selectedCard;
+                bool hovered = i == _hoveredCard;
+                float lift = selected ? 26f : hovered && usable ? 16f : 0f;
+                var rect = new Rect(startX + i * (CardWidth + CardSpacing), baseY - lift, CardWidth, CardHeight);
 
-                if (GUI.Button(rect, BuildCardText(card, affordable), style))
+                CardPainter.Draw(rect, card, _art.Card(card), _art.Sprite("gem"), _theme, new CardVisualState
+                {
+                    Selected = selected,
+                    Hovered = hovered,
+                    Usable = usable,
+                    Affordable = affordable,
+                    Time = Time.time
+                });
+
+                GUI.enabled = usable;
+
+                if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
                 {
                     OnCardClicked(i, card);
                 }
@@ -538,30 +718,22 @@ namespace SovereignOfAshes.Presentation
                 GUI.enabled = true;
             }
 
-            var endTurn = new Rect(width - 260f, height - 104f, 236f, 72f);
+            var endTurn = new Rect(width - 262f, height - 110f, 240f, 80f);
+            bool endHover = endTurn.Contains(mouse) && canAct;
+            Color endBorder = canAct ? (endHover ? GuiTheme.Gold : GuiTheme.Bronze) : new Color(0.25f, 0.22f, 0.2f);
+            Color endFill = canAct ? (endHover ? new Color(0.55f, 0.16f, 0.10f) : new Color(0.40f, 0.11f, 0.08f)) : new Color(0.15f, 0.13f, 0.13f);
+            _theme.Frame(endTurn, endBorder, endFill, 4f);
+            _theme.ShadowText(endTurn, "ENCERRAR\nTURNO", _theme.ButtonText, canAct ? Color.white : GuiTheme.TextDim);
+
             GUI.enabled = canAct;
 
-            if (GUI.Button(endTurn, "ENCERRAR TURNO", _theme.Button))
+            if (GUI.Button(endTurn, GUIContent.none, GUIStyle.none))
             {
                 _selectedCard = -1;
                 _session.Player.EndTurn();
             }
 
             GUI.enabled = true;
-        }
-
-        private string BuildCardText(ICardDefinition card, bool affordable)
-        {
-            _text.Clear();
-            string costColor = GuiTheme.Hex(affordable ? GuiTheme.FaithColor : GuiTheme.Bad);
-            _text.Append("<b><size=15>").Append(card.DisplayName).Append("</size></b>\n");
-            _text.Append("<color=").Append(costColor).Append(">").Append(card.Cost).Append(" de Fé</color>  ·  ");
-            _text.Append("<color=").Append(GuiTheme.Hex(GuiTheme.TextDim)).Append(">").Append(DisplayNames.Concept(card.PrimaryConcept)).Append("</color>\n\n");
-            _text.Append(card.Description).Append("\n\n");
-
-            string target = card.IsGlobal() ? "Uso imediato" : card.RequiresInvader ? "Alvo: invasor" : "Alvo: setor";
-            _text.Append("<i><color=").Append(GuiTheme.Hex(GuiTheme.Gold)).Append(">").Append(target).Append("</color></i>");
-            return _text.ToString();
         }
 
         private void OnCardClicked(int handIndex, ICardDefinition card)
@@ -590,7 +762,7 @@ namespace SovereignOfAshes.Presentation
 
             if (!string.IsNullOrEmpty(text))
             {
-                GUI.Label(new Rect(0f, height - CardHeight - 72f, width, 26f), text, _theme.Centered);
+                _theme.ShadowText(new Rect(0f, height - CardHeight - 74f, width, 26f), text, _theme.Centered, GuiTheme.Text);
             }
         }
 
@@ -614,28 +786,44 @@ namespace SovereignOfAshes.Presentation
 
         private void DrawGameOver(float width, float height)
         {
-            GUI.color = new Color(0f, 0f, 0f, 0.75f);
-            GUI.DrawTexture(new Rect(0f, 0f, width, height), _theme.White);
-            GUI.color = Color.white;
+            _theme.Fill(new Rect(0f, 0f, width, height), new Color(0f, 0f, 0f, 0.78f));
 
             GameOverInfo result = _session.Turns.Result;
             bool victory = result != null && result.Outcome == GameOutcome.Victory;
-            string title = victory ? "VITÓRIA" : "O TRONO ESTÁ VAZIO";
+            float size = 160f + 8f * Mathf.Sin(Time.time * 2f);
+            _theme.Image(new Rect(width * 0.5f - size * 0.5f, height * 0.22f - size * 0.5f + 40f, size, size),
+                _art.Sprite(victory ? "core" : "skull"), Color.white);
 
-            GUI.Label(new Rect(0f, height * 0.32f, width, 70f), title, _theme.BigTitle);
-            GUI.Label(new Rect(0f, height * 0.32f + 78f, width, 30f),
-                result != null ? $"{result.Reason} (turno {result.TurnNumber})" : string.Empty, _theme.Centered);
+            _theme.ShadowText(new Rect(0f, height * 0.40f, width, 90f), victory ? "VITÓRIA" : "O TRONO ESTÁ VAZIO",
+                _theme.Banner, victory ? GuiTheme.Gold : GuiTheme.Bad);
+            _theme.ShadowText(new Rect(0f, height * 0.40f + 92f, width, 30f),
+                result != null ? $"{result.Reason} (turno {result.TurnNumber})" : string.Empty, _theme.Centered, GuiTheme.Text);
 
-            if (GUI.Button(new Rect(width * 0.5f - 140f, height * 0.32f + 140f, 280f, 64f), "JOGAR NOVAMENTE", _theme.Button))
+            var button = new Rect(width * 0.5f - 150f, height * 0.40f + 150f, 300f, 72f);
+            Vector2 mouse = Event.current != null ? Event.current.mousePosition : Vector2.zero;
+            bool hover = button.Contains(mouse);
+            _theme.Frame(button, hover ? GuiTheme.Gold : GuiTheme.Bronze, hover ? new Color(0.55f, 0.16f, 0.10f) : new Color(0.40f, 0.11f, 0.08f), 4f);
+            _theme.ShadowText(button, "JOGAR NOVAMENTE", _theme.ButtonText, Color.white);
+
+            if (GUI.Button(button, GUIContent.none, GUIStyle.none))
             {
                 _bootstrapper.RestartSession();
             }
         }
 
-        // ------------------------------------------------------------------ Tabuleiro: rótulos, dicas e cliques
+        // ------------------------------------------------------------------ Tabuleiro: arte, dicas e cliques
 
         private void DrawBoardOverlay()
         {
+            // Núcleo Divino.
+            Vector2 coreGui = WorldToGui(Vector2.zero);
+            float pulse = 1f + 0.05f * Mathf.Sin(Time.time * 2.4f);
+            float coreSize = 112f * pulse;
+            _theme.Image(new Rect(coreGui.x - coreSize * 0.5f, coreGui.y - coreSize * 0.5f - 6f, coreSize, coreSize), _art.Sprite("core"), Color.white);
+            _theme.ShadowText(new Rect(coreGui.x - 60f, coreGui.y + 46f, 120f, 30f), _session.DivineCore.CurrentHealth.ToString(),
+                _theme.FloatText, Color.white);
+
+            // Elementos da alquimia.
             foreach (TectonicSector sector in _session.Board.GetAllSectors())
             {
                 if (sector.IsEmpty)
@@ -644,11 +832,10 @@ namespace SovereignOfAshes.Presentation
                 }
 
                 Vector2 gui = WorldToGui(GetPlateCenter(sector));
-                string name = sector.Content.Definition.DisplayName;
-                float w = Mathf.Max(70f, name.Length * 7.2f);
-                GUI.Label(new Rect(gui.x - w * 0.5f, gui.y + 6f, w, 20f), name, _theme.BoardTag);
+                _theme.Image(new Rect(gui.x - 22f, gui.y - 22f, 44f, 44f), _art.Element(sector.Content.Definition), Color.white);
             }
 
+            // Invasores.
             foreach (InvaderEntity invader in _session.Invaders.Invaders)
             {
                 if (!_invaderVisuals.TryGetValue(invader.Id, out InvaderVisual visual))
@@ -657,13 +844,16 @@ namespace SovereignOfAshes.Presentation
                 }
 
                 Vector2 gui = WorldToGui(visual.Position);
-                string label = $"{invader.Name}\nHP {invader.CurrentHealth}/{invader.MaxHealth} · ATQ {invader.Attack}";
-                GUI.Label(new Rect(gui.x - 62f, gui.y - 30f, 124f, 36f), label, _theme.InvaderTag);
-            }
+                float bob = Mathf.Sin(Time.time * 3f + invader.Id) * 2f;
+                bool hit = _invaderHitTime.TryGetValue(invader.Id, out float hitAt) && Time.time - hitAt < 0.25f;
+                var spriteRect = new Rect(gui.x - 28f, gui.y - 38f + bob, 56f, 56f);
 
-            Vector2 core = WorldToGui(Vector2.zero);
-            GUI.Label(new Rect(core.x - 50f, core.y - 12f, 100f, 24f),
-                $"<b>{_session.DivineCore.CurrentHealth}</b>", _theme.Centered);
+                _theme.Fill(new Rect(gui.x - 20f, gui.y + 14f, 40f, 5f), new Color(0f, 0f, 0f, 0.45f)); // sombra
+                _theme.Image(spriteRect, _art.Invader(invader.Definition), hit ? new Color(1f, 0.45f, 0.45f) : Color.white);
+
+                var bar = new Rect(gui.x - 24f, gui.y + 22f, 48f, 7f);
+                _theme.DrawBar(bar, (float)invader.CurrentHealth / invader.MaxHealth, GuiTheme.Bad);
+            }
         }
 
         private void DrawSectorTooltip()
@@ -683,16 +873,16 @@ namespace SovereignOfAshes.Presentation
             if (invader != null)
             {
                 _text.Append("\n<color=").Append(GuiTheme.Hex(GuiTheme.Bad)).Append(">")
-                     .Append(invader.Name).Append(" — ").Append(invader.CurrentHealth).Append('/').Append(invader.MaxHealth)
+                     .Append(invader.Name).Append(": ").Append(invader.CurrentHealth).Append('/').Append(invader.MaxHealth)
                      .Append(" HP, ataque ").Append(invader.Attack).Append("</color>");
             }
 
             Vector2 mouse = Event.current.mousePosition;
             var content = new GUIContent(_text.ToString());
-            float height = _theme.Label.CalcHeight(content, 240f) + 20f;
-            var rect = new Rect(mouse.x + 18f, mouse.y + 18f, 268f, height);
-            GUI.Box(rect, GUIContent.none, _theme.Panel);
-            GUI.Label(new Rect(rect.x + 12f, rect.y + 10f, 244f, height - 20f), content, _theme.Label);
+            float contentHeight = _theme.Label.CalcHeight(content, 244f) + 22f;
+            var rect = new Rect(mouse.x + 20f, mouse.y + 20f, 272f, contentHeight);
+            _theme.Panel(rect);
+            GUI.Label(new Rect(rect.x + 14f, rect.y + 11f, 244f, contentHeight - 22f), content, _theme.Label);
         }
 
         private void UpdateHover(float width, float height)
@@ -750,10 +940,10 @@ namespace SovereignOfAshes.Presentation
 
         private bool IsOverBoardArea(Vector2 guiPoint, float width, float height)
         {
-            return guiPoint.x > SidePanelWidth + 16f
-                && guiPoint.x < width - SidePanelWidth - 16f
+            return guiPoint.x > SidePanelWidth + 14f
+                && guiPoint.x < width - SidePanelWidth - 14f
                 && guiPoint.y > TopBarHeight
-                && guiPoint.y < height - HandAreaHeight + 30f;
+                && guiPoint.y < height - HandAreaHeight + 20f;
         }
 
         private TectonicSector PickSector(Vector2 guiPoint)
@@ -786,23 +976,13 @@ namespace SovereignOfAshes.Presentation
             return _camera.ScreenToWorldPoint(screen);
         }
 
-        private static Color GetRingColor(RingType ring)
+        private static Color GetRingTint(RingType ring)
         {
             switch (ring)
             {
-                case RingType.InnerSanctuary: return InnerRingColor;
-                case RingType.MiddleCivilization: return MiddleRingColor;
-                default: return OuterRingColor;
-            }
-        }
-
-        private static Color GetContentTint(ElementKind kind)
-        {
-            switch (kind)
-            {
-                case ElementKind.Entity: return EntityTint;
-                case ElementKind.Structure: return StructureTint;
-                default: return ConceptTint;
+                case RingType.InnerSanctuary: return InnerRingTint;
+                case RingType.MiddleCivilization: return MiddleRingTint;
+                default: return OuterRingTint;
             }
         }
 
