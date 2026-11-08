@@ -14,6 +14,7 @@ namespace SovereignOfAshes.Presentation.Art
     public sealed class ArtLibrary : IDisposable
     {
         private readonly Dictionary<string, Texture2D> _sprites = new Dictionary<string, Texture2D>();
+        private readonly Dictionary<string, Texture2D> _illustrations = new Dictionary<string, Texture2D>();
         private readonly List<Texture2D> _owned = new List<Texture2D>();
         private bool _disposed;
 
@@ -54,10 +55,34 @@ namespace SovereignOfAshes.Presentation.Art
         /// <returns>Textura.</returns>
         public Texture2D Invader(IInvaderDefinition definition) => Sprite(ArtCatalog.ForInvader(definition?.Id));
 
-        /// <summary>Ilustração de uma carta.</summary>
+        /// <summary>Ilustração de uma carta em pixel art gerada por código (reserva quando não há ilustração pintada).</summary>
         /// <param name="card">Carta.</param>
         /// <returns>Textura.</returns>
         public Texture2D Card(ICardDefinition card) => Sprite(ArtCatalog.ForCard(card?.Id, card?.PrimaryConcept ?? ConceptType.Faith));
+
+        /// <summary>
+        /// Ilustração pintada da carta, carregada de <c>Resources/CardArt/&lt;id&gt;</c> (resultado em cache, inclusive ausências).
+        /// </summary>
+        /// <param name="card">Carta.</param>
+        /// <returns>A textura, ou <c>null</c> se a carta não tiver ilustração.</returns>
+        public Texture2D CardIllustration(ICardDefinition card)
+        {
+            string path = ArtCatalog.CardIllustrationPath(card?.Id);
+
+            if (path == null)
+            {
+                return null;
+            }
+
+            if (!_illustrations.TryGetValue(path, out Texture2D texture))
+            {
+                // Texturas de Resources pertencem ao Unity: não entram em _owned nem são destruídas no Dispose.
+                texture = Resources.Load<Texture2D>(path);
+                _illustrations[path] = texture;
+            }
+
+            return texture;
+        }
 
         /// <summary>
         /// Cria uma textura de terreno pixelada e repetível (blocos 4x4 com granulação e rachaduras).
@@ -158,6 +183,7 @@ namespace SovereignOfAshes.Presentation.Art
 
             _owned.Clear();
             _sprites.Clear();
+            _illustrations.Clear();
             _disposed = true;
         }
 

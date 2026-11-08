@@ -44,7 +44,12 @@ namespace SovereignOfAshes.Presentation
         /// <param name="gem">Sprite da gema de custo.</param>
         /// <param name="theme">Tema.</param>
         /// <param name="state">Estado visual.</param>
-        public static void Draw(Rect rect, ICardDefinition card, Texture2D art, Texture2D gem, GuiTheme theme, CardVisualState state)
+        /// <param name="fillArtBox">
+        /// <c>true</c> para ilustrações pintadas: preenchem o quadro inteiro (recorte centralizado, sem distorcer).
+        /// <c>false</c> para sprites pequenos: ficam centralizados no tamanho original.
+        /// </param>
+        public static void Draw(Rect rect, ICardDefinition card, Texture2D art, Texture2D gem, GuiTheme theme, CardVisualState state,
+            bool fillArtBox = false)
         {
             float pulse = 0.5f + 0.5f * Mathf.Sin(state.Time * 6f);
             Color border = state.Selected
@@ -66,8 +71,17 @@ namespace SovereignOfAshes.Presentation
 
             var artBox = new Rect(rect.x + 16f, rect.y + 50f, rect.width - 32f, 88f);
             theme.Frame(artBox, GuiTheme.Bronze, ArtBack, 2f);
-            float artSize = 80f;
-            theme.Image(new Rect(artBox.center.x - artSize * 0.5f, artBox.center.y - artSize * 0.5f, artSize, artSize), art, Color.white);
+
+            if (art != null && fillArtBox)
+            {
+                // Dentro da borda de 2px do quadro.
+                DrawCover(new Rect(artBox.x + 2f, artBox.y + 2f, artBox.width - 4f, artBox.height - 4f), art);
+            }
+            else if (art != null)
+            {
+                float artSize = 80f;
+                theme.Image(new Rect(artBox.center.x - artSize * 0.5f, artBox.center.y - artSize * 0.5f, artSize, artSize), art, Color.white);
+            }
 
             string target = card.IsGlobal() ? "Uso imediato" : card.RequiresInvader ? "Alvo: invasor" : "Alvo: setor";
             GUI.Label(new Rect(rect.x + 8f, rect.y + 142f, rect.width - 16f, 18f),
@@ -85,6 +99,36 @@ namespace SovereignOfAshes.Presentation
             {
                 theme.Fill(rect, new Color(0f, 0f, 0f, 0.45f));
             }
+        }
+
+        /// <summary>
+        /// Desenha a textura cobrindo toda a área, recortando o excesso no centro (como CSS <c>object-fit: cover</c>).
+        /// </summary>
+        /// <param name="area">Área de destino.</param>
+        /// <param name="texture">Textura.</param>
+        private static void DrawCover(Rect area, Texture texture)
+        {
+            if (area.width <= 0f || area.height <= 0f || texture.width <= 0 || texture.height <= 0)
+            {
+                return;
+            }
+
+            float areaAspect = area.width / area.height;
+            float textureAspect = (float)texture.width / texture.height;
+            var uv = new Rect(0f, 0f, 1f, 1f);
+
+            if (textureAspect > areaAspect)
+            {
+                uv.width = areaAspect / textureAspect;
+                uv.x = (1f - uv.width) * 0.5f;
+            }
+            else
+            {
+                uv.height = textureAspect / areaAspect;
+                uv.y = (1f - uv.height) * 0.5f;
+            }
+
+            GUI.DrawTextureWithTexCoords(area, texture, uv);
         }
     }
 }

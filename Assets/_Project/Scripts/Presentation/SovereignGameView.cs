@@ -699,14 +699,16 @@ namespace SovereignOfAshes.Presentation
                 float lift = selected ? 26f : hovered && usable ? 16f : 0f;
                 var rect = new Rect(startX + i * (CardWidth + CardSpacing), baseY - lift, CardWidth, CardHeight);
 
-                CardPainter.Draw(rect, card, _art.Card(card), _art.Sprite("gem"), _theme, new CardVisualState
+                Texture2D illustration = _art.CardIllustration(card);
+
+                CardPainter.Draw(rect, card, illustration != null ? illustration : _art.Card(card), _art.Sprite("gem"), _theme, new CardVisualState
                 {
                     Selected = selected,
                     Hovered = hovered,
                     Usable = usable,
                     Affordable = affordable,
                     Time = Time.time
-                });
+                }, fillArtBox: illustration != null);
 
                 GUI.enabled = usable;
 

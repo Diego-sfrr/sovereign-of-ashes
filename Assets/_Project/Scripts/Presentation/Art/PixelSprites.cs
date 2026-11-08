@@ -528,6 +528,15 @@ namespace SovereignOfAshes.Presentation.Art
         public static string ForInvader(string invaderId) =>
             invaderId != null && Invaders.TryGetValue(invaderId, out string sprite) ? sprite : "cultist";
 
+        /// <summary>Pasta (dentro de <c>Resources</c>) das ilustrações pintadas das cartas, uma por id: <c>CardArt/&lt;id&gt;.png</c>.</summary>
+        public const string CardIllustrationFolder = "CardArt";
+
+        /// <summary>Caminho em <c>Resources</c> da ilustração pintada de uma carta.</summary>
+        /// <param name="cardId">Id da carta.</param>
+        /// <returns>Caminho para <c>Resources.Load</c>, ou <c>null</c> se o id for vazio.</returns>
+        public static string CardIllustrationPath(string cardId) =>
+            string.IsNullOrWhiteSpace(cardId) ? null : $"{CardIllustrationFolder}/{cardId.Trim()}";
+
         /// <summary>Sprite da ilustração de uma carta.</summary>
         /// <param name="cardId">Id da carta.</param>
         /// <param name="concept">Conceito da carta (usado se o id não estiver no catálogo).</param>

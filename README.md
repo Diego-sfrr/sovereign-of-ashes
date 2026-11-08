@@ -46,6 +46,13 @@ Tudo em **Create → Sovereign of Ashes** (cartas, efeitos, receitas, invasores,
 perfis de Fé, de turnos e de civilização). Arraste os assets nos campos do `SovereignBootstrapper`;
 qualquer campo vazio continua usando o conteúdo padrão.
 
+### Arte das cartas
+
+Cada carta usa a ilustração `Assets/_Project/Resources/CardArt/<id da carta>.png`, se ela existir
+(ex.: `fire_spear.png`). Sem imagem, a carta mostra o sprite em pixel art gerado por código.
+A importação (sem compressão, com mipmaps, até 512px) é configurada sozinha pelo `CardArtImporter`.
+Os originais em 2048px, gerados pelo Gemini, ficam em `ArtSource/Cards` (fora do build).
+
 ## Estrutura
 
 ```
