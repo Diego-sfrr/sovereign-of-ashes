@@ -47,7 +47,7 @@ namespace SovereignOfAshes.Cards
                 throw new ArgumentNullException(nameof(context));
             }
 
-            if (Damage == 0)
+            if (Damage == 0 || !context.HasTarget)
             {
                 return;
             }

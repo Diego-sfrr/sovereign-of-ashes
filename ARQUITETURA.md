@@ -13,7 +13,8 @@
 | `SovereignOfAshes.Invaders` | Invasores: `InvaderRoster` (ocupação das placas), ondas, recompensa em Fé | Só os `*SO` |
 | `SovereignOfAshes.Turns` | Ciclo de turnos: `TurnSystem` + fases (`ITurnPhase`) + planejador tectônico | Só o `*SO` |
 | `SovereignOfAshes.Economy` | Fé do jogador: `FaithPool` (reserva), `FaithIncomeService` (renda por turno via Mandamentos) | Só o `*SO` |
-| `SovereignOfAshes.Presentation` | MonoBehaviours: composition root, visão, input | Sim |
+| `SovereignOfAshes.Session` | `GameSession` (monta a partida), `DefaultContent`, `GameLog`/`GameNarrator` (crônica), `PlayerActionService` (fachada das ações do jogador) | Não |
+| `SovereignOfAshes.Presentation` | `SovereignBootstrapper` (SOs → config), `SovereignGameView` (HUD IMGUI + input), `BoardRenderer` (malhas geradas), `BoardLayout` (geometria pura, testada) | Sim (exceto `BoardLayout`) |
 
 Regra de dependência: **Presentation → (Rules, Civilization, Cards, Alchemy) → Board → Core**. Nada aponta para Presentation; a lógica fala com a visão apenas por eventos (Observer).
 
@@ -253,6 +254,17 @@ sequenceDiagram
 Proteções: chamar `EndPlayerTurn` fora da vez do jogador ou de dentro de uma fase lança exceção. Um turno inteiro sem fase de jogador também lança exceção, em vez de travar o jogo num loop.
 
 **Nova fase** (ex.: invasores, eventos aleatórios): implemente `ITurnPhase` e inclua na lista em `SovereignBootstrapper.BuildTurnSystem()`.
+
+## Interface
+
+- **Zero configuração:** `SovereignGameView` gera a câmera, o tabuleiro (uma malha por placa, shader `Sprites/Default`) e o HUD em IMGUI. O IMGUI funciona com qualquer sistema de Input e não precisa de pacotes.
+- **Só lê e chama:** a view lê o estado da `GameSession` e envia ações pelo `PlayerActionService`. Nenhuma regra fica na camada visual.
+- **Animação desacoplada:** a lógica resolve o turno na hora. A view anima a rotação visual de cada anel (deslocamento contínuo seguindo `RingRotated`) e a marcha dos invasores. A entrada fica bloqueada enquanto anima.
+- **Clique:** `BoardLayout.TryPick` converte o ponto do mundo em (anel, posição) por coordenadas polares, sem colliders nem raycast.
+- **Cartas globais:** `AllowedRings = None` são jogadas direto da mão (Sermão, Milagre, Recrutar).
+- **Baralho:** `CardDeck` (compra, mão, descarte, reembaralha) e `DrawPhase` (descarta a mão e compra 5 no início do turno).
+
+Ordem completa do turno: Renda → **Compra** → Jogador → Rotação → Civilizações → Marcha → Surgimento → Julgamento.
 
 ## Invasores
 

@@ -30,6 +30,11 @@ namespace SovereignOfAshes.Cards
                 throw new ArgumentNullException(nameof(context));
             }
 
+            if (!context.HasTarget)
+            {
+                return;
+            }
+
             context.Alchemy.ApplyConcept(context.Target, Concept);
         }
     }
@@ -64,6 +69,11 @@ namespace SovereignOfAshes.Cards
             if (context == null)
             {
                 throw new ArgumentNullException(nameof(context));
+            }
+
+            if (!context.HasTarget)
+            {
+                return;
             }
 
             // A vizinhança é capturada antes de alterar qualquer setor, para o resultado não depender da ordem.

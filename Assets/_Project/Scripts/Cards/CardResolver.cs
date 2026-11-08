@@ -1,9 +1,6 @@
 using System;
-using SovereignOfAshes.Alchemy;
 using SovereignOfAshes.Board;
 using SovereignOfAshes.Economy;
-using SovereignOfAshes.Invaders;
-using SovereignOfAshes.Rules.Combat;
 
 namespace SovereignOfAshes.Cards
 {
@@ -25,56 +22,49 @@ namespace SovereignOfAshes.Cards
         InsufficientFaith = 3,
 
         /// <summary>A carta exige um invasor no setor e não há nenhum.</summary>
-        NoInvaderOnTarget = 4
+        NoInvaderOnTarget = 4,
+
+        /// <summary>A carta precisa de um setor alvo e nenhum foi informado.</summary>
+        TargetRequired = 5,
+
+        /// <summary>Não é a vez do jogador (usado pela camada de ações do jogador).</summary>
+        NotPlayerTurn = 6
     }
 
     /// <summary>
     /// Valida o alvo, cobra o custo em Fé e executa os efeitos de uma carta (POCO, sem Unity).
     /// O custo só é cobrado depois que todas as validações passam.
+    /// Cartas globais (<see cref="TargetRings.None"/>) não precisam de alvo.
     /// </summary>
     public sealed class CardResolver
     {
-        private readonly TectonicBoard _board;
-        private readonly AlchemySystem _alchemy;
+        private readonly CardPlayServices _services;
         private readonly IFaithWallet _wallet;
-        private readonly InvaderRoster _invaders;
-        private readonly CombatResolver _combat;
 
         /// <summary>
-        /// Disparado após uma carta ser jogada com sucesso. Parâmetros: carta, setor alvo.
+        /// Disparado após uma carta ser jogada com sucesso. Parâmetros: carta, setor alvo (nulo em cartas globais).
         /// </summary>
         public event Action<ICardDefinition, TectonicSector> CardPlayed;
 
         /// <summary>
         /// Cria o resolvedor.
         /// </summary>
-        /// <param name="board">Tabuleiro da partida.</param>
-        /// <param name="alchemy">Sistema de alquimia.</param>
+        /// <param name="services">Serviços da partida usados pelos efeitos.</param>
         /// <param name="wallet">Carteira de Fé que paga o custo das cartas.</param>
-        /// <param name="invaders">Registro de invasores (alvos das cartas de ataque).</param>
-        /// <param name="combat">Resolvedor de combate.</param>
         /// <exception cref="ArgumentNullException">Se alguma dependência for nula.</exception>
-        public CardResolver(
-            TectonicBoard board,
-            AlchemySystem alchemy,
-            IFaithWallet wallet,
-            InvaderRoster invaders,
-            CombatResolver combat)
+        public CardResolver(CardPlayServices services, IFaithWallet wallet)
         {
-            _board = board ?? throw new ArgumentNullException(nameof(board));
-            _alchemy = alchemy ?? throw new ArgumentNullException(nameof(alchemy));
+            _services = services ?? throw new ArgumentNullException(nameof(services));
             _wallet = wallet ?? throw new ArgumentNullException(nameof(wallet));
-            _invaders = invaders ?? throw new ArgumentNullException(nameof(invaders));
-            _combat = combat ?? throw new ArgumentNullException(nameof(combat));
         }
 
         /// <summary>
-        /// Verifica se a carta pode ser jogada no setor, sem executar nada (útil para destacar alvos na UI).
+        /// Verifica se a carta pode ser jogada, sem executar nada (útil para destacar alvos na UI).
         /// </summary>
         /// <param name="card">Carta.</param>
-        /// <param name="target">Setor alvo.</param>
+        /// <param name="target">Setor alvo (ignorado em cartas globais; pode ser nulo nelas).</param>
         /// <returns><see cref="CardPlayOutcome.Played"/> se for válido, ou o motivo da recusa.</returns>
-        /// <exception cref="ArgumentNullException">Se algum argumento for nulo.</exception>
+        /// <exception cref="ArgumentNullException">Se <paramref name="card"/> for nula.</exception>
         public CardPlayOutcome CanPlay(ICardDefinition card, TectonicSector target)
         {
             if (card == null)
@@ -82,24 +72,27 @@ namespace SovereignOfAshes.Cards
                 throw new ArgumentNullException(nameof(card));
             }
 
-            if (target == null)
+            if (!card.IsGlobal())
             {
-                throw new ArgumentNullException(nameof(target));
-            }
+                if (target == null)
+                {
+                    return CardPlayOutcome.TargetRequired;
+                }
 
-            if (!card.AllowedRings.Includes(target.Ring))
-            {
-                return CardPlayOutcome.InvalidRing;
-            }
+                if (!card.AllowedRings.Includes(target.Ring))
+                {
+                    return CardPlayOutcome.InvalidRing;
+                }
 
-            if (card.RequiresEmptySector && !target.IsEmpty)
-            {
-                return CardPlayOutcome.SectorOccupied;
-            }
+                if (card.RequiresEmptySector && !target.IsEmpty)
+                {
+                    return CardPlayOutcome.SectorOccupied;
+                }
 
-            if (card.RequiresInvader && !_invaders.IsOccupied(target))
-            {
-                return CardPlayOutcome.NoInvaderOnTarget;
+                if (card.RequiresInvader && !_services.Invaders.IsOccupied(target))
+                {
+                    return CardPlayOutcome.NoInvaderOnTarget;
+                }
             }
 
             if (!_wallet.CanAfford(Math.Max(0, card.Cost)))
@@ -114,9 +107,9 @@ namespace SovereignOfAshes.Cards
         /// Joga a carta: valida o alvo, cobra a Fé e executa os efeitos em ordem.
         /// </summary>
         /// <param name="card">Carta.</param>
-        /// <param name="target">Setor alvo (deve pertencer ao tabuleiro deste resolvedor).</param>
+        /// <param name="target">Setor alvo (deve pertencer ao tabuleiro); ignorado em cartas globais.</param>
         /// <returns>O desfecho; se não for <see cref="CardPlayOutcome.Played"/>, nada foi executado nem cobrado.</returns>
-        /// <exception cref="ArgumentNullException">Se algum argumento for nulo.</exception>
+        /// <exception cref="ArgumentNullException">Se <paramref name="card"/> for nula.</exception>
         /// <exception cref="ArgumentException">Se o setor não pertencer ao tabuleiro.</exception>
         public CardPlayOutcome Play(ICardDefinition card, TectonicSector target)
         {
@@ -127,9 +120,11 @@ namespace SovereignOfAshes.Cards
                 return validation;
             }
 
-            if (!_board.GetRing(target.Ring).Contains(target))
+            TectonicSector effectiveTarget = card.IsGlobal() ? null : target;
+
+            if (effectiveTarget != null && !_services.Board.GetRing(effectiveTarget.Ring).Contains(effectiveTarget))
             {
-                throw new ArgumentException($"O setor {target} não pertence a este tabuleiro.", nameof(target));
+                throw new ArgumentException($"O setor {effectiveTarget} não pertence a este tabuleiro.", nameof(target));
             }
 
             if (!_wallet.TrySpend(Math.Max(0, card.Cost)))
@@ -137,14 +132,14 @@ namespace SovereignOfAshes.Cards
                 return CardPlayOutcome.InsufficientFaith;
             }
 
-            var context = new TileEffectContext(_board, target, _alchemy, _invaders, _combat, card);
+            var context = new TileEffectContext(_services, effectiveTarget, card);
 
             foreach (ITileEffect effect in card.Effects)
             {
                 effect?.Apply(context);
             }
 
-            CardPlayed?.Invoke(card, target);
+            CardPlayed?.Invoke(card, effectiveTarget);
             return CardPlayOutcome.Played;
         }
     }

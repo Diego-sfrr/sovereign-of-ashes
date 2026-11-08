@@ -11,6 +11,7 @@ using SovereignOfAshes.Invaders;
 using SovereignOfAshes.Rules;
 using SovereignOfAshes.Rules.Combat;
 using SovereignOfAshes.Rules.Commandments;
+using SovereignOfAshes.Session;
 using SovereignOfAshes.Turns;
 using SovereignOfAshes.Turns.Phases;
 
@@ -138,6 +139,7 @@ namespace SovereignOfAshes.Tests
         {
             public string Id => "fake";
             public string DisplayName => "Fake";
+            public string Description => "Carta de teste.";
             public int Cost { get; set; } = 1;
             public ConceptType PrimaryConcept => ConceptType.Iron;
             public TargetRings AllowedRings { get; set; } = TargetRings.All;
@@ -162,8 +164,172 @@ namespace SovereignOfAshes.Tests
             var alchemy = new AlchemySystem(provider, new DefaultElementFactory());
             var invaders = new InvaderRoster(board);
             var combat = new CombatResolver(rules ?? new RuleModifierSystem());
-            var resolver = new CardResolver(board, alchemy, wallet ?? new FaithPool(99, 99), invaders, combat);
+            var services = new CardPlayServices(board, alchemy, invaders, combat,
+                new Combatant("Core", 30, 0), new List<CivilizationEntity>());
+            var resolver = new CardResolver(services, wallet ?? new FaithPool(99, 99));
             return (board, resolver, invaders);
+        }
+
+        // ---------- Baralho, cartas globais e sessão ----------
+
+        [Test]
+        public void CardDeck_DrawsDiscardsAndReshuffles()
+        {
+            var cards = Enumerable.Range(0, 7).Select(i => (ICardDefinition)new FakeCard()).ToList();
+            var deck = new CardDeck(cards, handSize: 5, random: new System.Random(1));
+
+            Assert.AreEqual(5, deck.DrawUpToHandSize());
+            Assert.AreEqual(2, deck.DrawPileCount);
+
+            deck.DiscardFromHand(0);
+            Assert.AreEqual(4, deck.Hand.Count);
+            Assert.AreEqual(1, deck.DiscardPileCount);
+
+            deck.DiscardHand();
+            Assert.AreEqual(5, deck.DiscardPileCount);
+
+            Assert.AreEqual(5, deck.DrawUpToHandSize()); // 2 da pilha + reembaralha o descarte
+            Assert.AreEqual(7, deck.TotalCount);
+        }
+
+        [Test]
+        public void GlobalCards_NeedNoTarget_AndAffectCivilizationsAndCore()
+        {
+            var board = new TectonicBoard(4);
+            var rules = new RuleModifierSystem();
+            var core = new Combatant("Core", 30, 0);
+            core.TakeDamage(10);
+            var civ = new CivilizationEntity("Civ", new CivilizationStatsConfig(5, 10, 6, 20, 10, 3));
+            var services = new CardPlayServices(board, new AlchemySystem(new InMemoryRecipeProvider(), new DefaultElementFactory()),
+                new InvaderRoster(board), new CombatResolver(rules), core, new List<CivilizationEntity> { civ });
+            var resolver = new CardResolver(services, new FaithPool(10, 10));
+
+            var sermon = new SimpleCardDefinition("s", "Sermão", "", 1, ConceptType.Faith, TargetRings.None, false, false,
+                new ITileEffect[] { new CivilizationInfluenceEffect(-3, 0, 0) });
+            var miracle = new SimpleCardDefinition("m", "Milagre", "", 2, ConceptType.Faith, TargetRings.None, false, false,
+                new ITileEffect[] { new HealCoreEffect(6) });
+            var spear = new SimpleCardDefinition("l", "Lança", "", 1, ConceptType.Fire, TargetRings.All, false, true,
+                new ITileEffect[] { new InvaderStrikeEffect(4, false) });
+
+            Assert.AreEqual(CardPlayOutcome.Played, resolver.Play(sermon, null));
+            Assert.AreEqual(3, civ.Rationality);
+            Assert.AreEqual(CardPlayOutcome.Played, resolver.Play(miracle, null));
+            Assert.AreEqual(26, core.CurrentHealth);
+            Assert.AreEqual(CardPlayOutcome.TargetRequired, resolver.Play(spear, null));
+        }
+
+        [Test]
+        public void PlayerActions_RespectTurnAndMovePlayedCardToDiscard()
+        {
+            GameSessionConfig config = DefaultContent.CreateConfig();
+            config.Seed = 123;
+            config.StartingDeck.Clear();
+            config.StartingDeck.AddRange(Enumerable.Repeat<ICardDefinition>(
+                new SimpleCardDefinition("s", "Sermão", "", 1, ConceptType.Faith, TargetRings.None, false, false,
+                    new ITileEffect[] { new CivilizationInfluenceEffect(-1, 0, 0) }), 6));
+
+            using (var session = new GameSession(config))
+            {
+                Assert.IsFalse(session.Player.CanAct); // partida ainda não começou
+                Assert.IsFalse(session.Player.EndTurn());
+
+                session.Start();
+                Assert.IsTrue(session.Player.CanAct);
+                Assert.AreEqual(5, session.Deck.Hand.Count);
+
+                int faithBefore = session.Faith.Current;
+                Assert.AreEqual(CardPlayOutcome.Played, session.Player.PlayFromHand(0, null));
+                Assert.AreEqual(4, session.Deck.Hand.Count);
+                Assert.AreEqual(1, session.Deck.DiscardPileCount);
+                Assert.AreEqual(faithBefore - 1, session.Faith.Current);
+
+                Assert.IsTrue(session.Player.EndTurn());
+                Assert.AreEqual(2, session.Turns.TurnNumber);
+                Assert.AreEqual(5, session.Deck.Hand.Count);
+            }
+        }
+
+        [Test]
+        public void DefaultSession_AutoPlayedGame_ReachesGameOverWithoutErrors()
+        {
+            for (int seed = 1; seed <= 20; seed++)
+            {
+                GameSessionConfig config = DefaultContent.CreateConfig();
+                config.Seed = seed;
+
+                using (var session = new GameSession(config))
+                {
+                    session.Start();
+                    int guard = 0;
+
+                    while (session.Turns.State == TurnState.AwaitingPlayer && guard++ < 100)
+                    {
+                        AutoPlayTurn(session);
+                        session.Player.EndTurn();
+                    }
+
+                    Assert.AreEqual(TurnState.GameOver, session.Turns.State, $"semente {seed}");
+                    Assert.IsTrue(session.Log.Entries.Count > 0);
+                }
+            }
+        }
+
+        private static void AutoPlayTurn(GameSession session)
+        {
+            // Joga, enquanto possível, cada carta da mão no primeiro alvo válido (ou sem alvo, se global).
+            bool playedSomething = true;
+
+            while (playedSomething)
+            {
+                playedSomething = false;
+
+                for (int i = 0; i < session.Deck.Hand.Count && !playedSomething; i++)
+                {
+                    if (session.Deck.Hand[i].IsGlobal())
+                    {
+                        playedSomething = session.Player.PlayFromHand(i, null) == CardPlayOutcome.Played;
+                        continue;
+                    }
+
+                    foreach (TectonicSector sector in session.Board.GetAllSectors())
+                    {
+                        if (session.Player.Preview(i, sector) == CardPlayOutcome.Played)
+                        {
+                            playedSomething = session.Player.PlayFromHand(i, sector) == CardPlayOutcome.Played;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void BoardLayout_PicksRingAndPositionClockwiseFromTop()
+        {
+            var layout = new SovereignOfAshes.Presentation.BoardLayout(8, 3);
+
+            // Topo do anel do meio = posição 0.
+            float radius = layout.GetCenterRadius(1);
+            Assert.IsTrue(layout.TryPick(0f, radius, out int ring, out int position));
+            Assert.AreEqual(1, ring);
+            Assert.AreEqual(0, position);
+
+            // Direita = 90° no sentido horário = posição 2 (de 8).
+            Assert.IsTrue(layout.TryPick(layout.GetCenterRadius(2), 0f, out ring, out position));
+            Assert.AreEqual(2, ring);
+            Assert.AreEqual(2, position);
+
+            // Ida e volta: o centro de cada posição é "pickado" de volta na mesma posição.
+            for (int p = 0; p < 8; p++)
+            {
+                SovereignOfAshes.Presentation.BoardLayout.PolarToCartesian(layout.GetCenterRadius(0), layout.GetAngleDegrees(p), out float x, out float y);
+                Assert.IsTrue(layout.TryPick(x, y, out ring, out position));
+                Assert.AreEqual(0, ring);
+                Assert.AreEqual(p, position);
+            }
+
+            Assert.IsFalse(layout.TryPick(0f, 0f, out _, out _)); // núcleo
+            Assert.IsFalse(layout.TryPick(0f, layout.OuterEdge + 1f, out _, out _)); // fora
         }
 
         [Test]

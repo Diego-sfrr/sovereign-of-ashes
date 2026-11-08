@@ -30,7 +30,7 @@ namespace SovereignOfAshes.Cards
     [Flags]
     public enum TargetRings
     {
-        /// <summary>Nenhum anel (carta sem alvo no tabuleiro).</summary>
+        /// <summary>Nenhum anel: carta global, jogada direto da mão, sem alvo no tabuleiro.</summary>
         None = 0,
 
         /// <summary>Santuário Interno.</summary>
@@ -62,6 +62,22 @@ namespace SovereignOfAshes.Cards
             int bit = 1 << (int)ring;
             return ((int)mask & bit) != 0;
         }
+
+        /// <summary>
+        /// Indica se a carta é global: não mira setor (<see cref="TargetRings.None"/>), é jogada direto da mão.
+        /// </summary>
+        /// <param name="card">Carta.</param>
+        /// <returns><c>true</c> se a carta não precisa de alvo.</returns>
+        /// <exception cref="ArgumentNullException">Se <paramref name="card"/> for nula.</exception>
+        public static bool IsGlobal(this ICardDefinition card)
+        {
+            if (card == null)
+            {
+                throw new ArgumentNullException(nameof(card));
+            }
+
+            return card.AllowedRings == TargetRings.None;
+        }
     }
 
     /// <summary>
@@ -75,6 +91,9 @@ namespace SovereignOfAshes.Cards
 
         /// <summary>Nome exibido.</summary>
         string DisplayName { get; }
+
+        /// <summary>Texto da carta (o que ela faz).</summary>
+        string Description { get; }
 
         /// <summary>Custo em Fé para jogar.</summary>
         int Cost { get; }
