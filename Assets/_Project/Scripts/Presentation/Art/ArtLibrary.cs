@@ -85,6 +85,59 @@ namespace SovereignOfAshes.Presentation.Art
         }
 
         /// <summary>
+        /// Pintura carregada de <c>Resources/&lt;caminho&gt;</c> (fundo, retratos, verso de carta, telas de fim de jogo).
+        /// O resultado fica em cache, inclusive a ausência: sem a imagem a interface usa o desenho de reserva.
+        /// </summary>
+        /// <param name="resourcePath">Caminho sem extensão, ex.: <c>UI/backdrop</c> ou <c>Portraits/ash_cultist</c>.</param>
+        /// <returns>A textura, ou <c>null</c> se não existir.</returns>
+        public Texture2D Painting(string resourcePath)
+        {
+            if (string.IsNullOrWhiteSpace(resourcePath))
+            {
+                return null;
+            }
+
+            if (!_illustrations.TryGetValue(resourcePath, out Texture2D texture))
+            {
+                texture = Resources.Load<Texture2D>(resourcePath);
+                _illustrations[resourcePath] = texture;
+            }
+
+            return texture;
+        }
+
+        /// <summary>
+        /// Cria um brilho radial suave (cor no centro, transparente nas bordas) para halos e sombras.
+        /// </summary>
+        /// <param name="size">Tamanho em pixels.</param>
+        /// <param name="color">Cor do brilho (o alfa é multiplicado pelo gradiente).</param>
+        /// <returns>Textura com transparência.</returns>
+        public Texture2D CreateGlow(int size, Color color)
+        {
+            var pixels = new Color[size * size];
+            float half = (size - 1) * 0.5f;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x - half) / half;
+                    float dy = (y - half) / half;
+                    float t = Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx + dy * dy));
+                    float alpha = t * t * (3f - 2f * t); // smoothstep
+                    pixels[y * size + x] = new Color(color.r, color.g, color.b, color.a * alpha);
+                }
+            }
+
+            Texture2D texture = Own(new Texture2D(size, size, TextureFormat.RGBA32, false));
+            texture.SetPixels(pixels);
+            texture.Apply();
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            return texture;
+        }
+
+        /// <summary>
         /// Cria uma textura de terreno pixelada e repetível (blocos 4x4 com granulação e rachaduras).
         /// </summary>
         /// <param name="size">Tamanho em pixels (múltiplo de 4).</param>

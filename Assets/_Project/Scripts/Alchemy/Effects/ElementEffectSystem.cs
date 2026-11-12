@@ -73,6 +73,44 @@ namespace SovereignOfAshes.Alchemy.Effects
             }
         }
 
+        /// <summary>
+        /// Consulta pura: diz se o setor barraria o invasor, sem aplicar dano nem desgaste (usada na previsão da marcha).
+        /// </summary>
+        /// <param name="invader">Invasor que tentaria entrar.</param>
+        /// <param name="destination">Setor de destino.</param>
+        /// <returns><c>true</c> se algum efeito do elemento no setor barraria o invasor.</returns>
+        /// <exception cref="ArgumentNullException">Se algum argumento for nulo.</exception>
+        public bool WouldBlock(InvaderEntity invader, TectonicSector destination)
+        {
+            if (invader == null)
+            {
+                throw new ArgumentNullException(nameof(invader));
+            }
+
+            if (destination == null)
+            {
+                throw new ArgumentNullException(nameof(destination));
+            }
+
+            if (!(destination.Content is SectorElement element))
+            {
+                return false;
+            }
+
+            ElementEffectContext context = CreateContext(destination, element);
+            IReadOnlyList<ElementEffect> effects = _provider.GetEffects(element.Definition);
+
+            for (int i = 0; i < effects.Count; i++)
+            {
+                if (effects[i].BlocksInvader(context, invader))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <inheritdoc />
         public bool TryBlock(InvaderEntity invader, TectonicSector destination)
         {

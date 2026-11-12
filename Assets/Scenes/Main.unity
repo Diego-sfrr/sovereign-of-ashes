@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &174644059
+--- !u!1 &844548271
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,81 +127,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 174644062}
-  - component: {fileID: 174644061}
-  - component: {fileID: 174644060}
-  m_Layer: 0
-  m_Name: Sovereign of Ashes
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &174644060
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 174644059}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 288caa4dd02be824bba6eba36b5c6be7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SovereignOfAshes.Runtime::SovereignOfAshes.Presentation.SovereignGameView
-  _cameraSize: 6.2
-  _cameraOffsetY: -1.15
-  _rotationSpeed: 2.5
-  _invaderSpeed: 3.5
---- !u!114 &174644061
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 174644059}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 09487abac260ef3478705359914a6c08, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: SovereignOfAshes.Runtime::SovereignOfAshes.Presentation.SovereignBootstrapper
-  _sectorsPerRing: 8
-  _coreMaxHealth: 30
-  _recipeBook: {fileID: 0}
-  _startingDeck: []
-  _handSize: 5
-  _civilizationProfiles: []
-  _startingCommandments: []
-  _faithEconomy: {fileID: 0}
-  _turnProfile: {fileID: 0}
-  _invasionProfile: {fileID: 0}
-  _seed: 0
-  _mirrorLogToConsole: 1
---- !u!4 &174644062
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 174644059}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1773686196
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1773686198}
-  - component: {fileID: 1773686197}
+  - component: {fileID: 844548273}
+  - component: {fileID: 844548272}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -209,13 +136,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!20 &1773686197
+--- !u!20 &844548272
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1773686196}
+  m_GameObject: {fileID: 844548271}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
@@ -260,13 +187,86 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!4 &1773686198
+--- !u!4 &844548273
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1773686196}
+  m_GameObject: {fileID: 844548271}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1636952065
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1636952068}
+  - component: {fileID: 1636952067}
+  - component: {fileID: 1636952066}
+  m_Layer: 0
+  m_Name: Sovereign of Ashes
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1636952066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1636952065}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 288caa4dd02be824bba6eba36b5c6be7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SovereignOfAshes.Runtime::SovereignOfAshes.Presentation.SovereignGameView
+  _cameraSize: 6.9
+  _cameraOffsetY: -1.45
+  _rotationSpeed: 2.2
+  _invaderSpeed: 3.2
+--- !u!114 &1636952067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1636952065}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09487abac260ef3478705359914a6c08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SovereignOfAshes.Runtime::SovereignOfAshes.Presentation.SovereignBootstrapper
+  _sectorsPerRing: 8
+  _coreMaxHealth: 30
+  _recipeBook: {fileID: 0}
+  _startingDeck: []
+  _handSize: 5
+  _civilizationProfiles: []
+  _startingCommandments: []
+  _faithEconomy: {fileID: 0}
+  _turnProfile: {fileID: 0}
+  _invasionProfile: {fileID: 0}
+  _seed: 0
+  _mirrorLogToConsole: 1
+--- !u!4 &1636952068
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1636952065}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -279,5 +279,5 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1773686198}
-  - {fileID: 174644062}
+  - {fileID: 844548273}
+  - {fileID: 1636952068}

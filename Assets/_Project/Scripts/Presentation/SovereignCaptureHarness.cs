@@ -98,6 +98,12 @@ namespace SovereignOfAshes.Presentation
 
             int shot = 3;
 
+            // Carta ampliada (o que aparece ao passar o mouse numa carta da mão).
+            _view.ForceHoverCard(0);
+            yield return new WaitForSeconds(0.5f);
+            yield return Capture($"{shot++:00}-carta-ampliada");
+            _view.ForceHoverCard(-1);
+
             // Grimório aberto (a lista de receitas e o que cada uma faz).
             _view.SetGrimoireOpen(true);
             yield return new WaitForSeconds(0.5f);
@@ -131,7 +137,15 @@ namespace SovereignOfAshes.Presentation
                 yield return new WaitForSeconds(1.4f);
             }
 
-            yield return Capture($"{shot:00}-final");
+            yield return Capture($"{shot++:00}-final");
+
+            // As duas telas de fim de jogo pintadas (prévia: não encerra a partida de verdade).
+            _view.PreviewGameOver(false);
+            yield return new WaitForSeconds(0.5f);
+            yield return Capture($"{shot++:00}-derrota");
+            _view.PreviewGameOver(true);
+            yield return new WaitForSeconds(0.5f);
+            yield return Capture($"{shot:00}-vitoria");
             Application.Quit();
         }
 

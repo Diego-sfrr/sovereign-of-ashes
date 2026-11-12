@@ -74,6 +74,18 @@ namespace SovereignOfAshes.Presentation
         /// <summary>Números flutuantes (branco; a cor vem de <see cref="GUI.color"/>).</summary>
         public GUIStyle FloatText { get; }
 
+        /// <summary>Nome da carta ampliada.</summary>
+        public GUIStyle CardNameLarge { get; }
+
+        /// <summary>Texto da carta ampliada.</summary>
+        public GUIStyle CardBodyLarge { get; }
+
+        /// <summary>Linha de tipo da carta ampliada.</summary>
+        public GUIStyle CardTypeLarge { get; }
+
+        /// <summary>Custo na gema da carta ampliada.</summary>
+        public GUIStyle CostNumberLarge { get; }
+
         /// <summary>Nome da carta.</summary>
         public GUIStyle CardName { get; }
 
@@ -103,6 +115,10 @@ namespace SovereignOfAshes.Presentation
             Number = MakeText(22, Color.white, FontStyle.Bold, TextAnchor.MiddleLeft);
             SmallNumber = MakeText(13, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             CostNumber = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CardNameLarge = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CardBodyLarge = MakeText(17, Text, FontStyle.Normal, TextAnchor.UpperCenter);
+            CardTypeLarge = MakeText(15, Gold, FontStyle.Italic, TextAnchor.MiddleCenter);
+            CostNumberLarge = MakeText(28, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             FloatText = MakeText(24, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             CardName = MakeText(14, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             CardBody = MakeText(12, Text, FontStyle.Normal, TextAnchor.UpperCenter);
@@ -140,9 +156,90 @@ namespace SovereignOfAshes.Presentation
             Fill(new Rect(rect.x + thickness, rect.y + thickness, rect.width - thickness * 2f, 2f), new Color(1f, 1f, 1f, 0.06f));
         }
 
-        /// <summary>Painel padrão do HUD.</summary>
+        /// <summary>Painel padrão do HUD: moldura de bronze, filete interno e cantoneiras douradas.</summary>
         /// <param name="rect">Área.</param>
-        public void Panel(Rect rect) => Frame(rect, Bronze, PanelFill, 3f);
+        public void Panel(Rect rect)
+        {
+            Frame(rect, Bronze, PanelFill, 3f);
+            Fill(new Rect(rect.x + 8f, rect.y + 8f, rect.width - 16f, 1f), new Color(Gold.r, Gold.g, Gold.b, 0.18f));
+            Fill(new Rect(rect.x + 8f, rect.yMax - 9f, rect.width - 16f, 1f), new Color(Gold.r, Gold.g, Gold.b, 0.18f));
+            CornerStuds(rect, Gold, 6f, 5f);
+        }
+
+        /// <summary>
+        /// Desenha quatro pontos nos cantos de uma área (acabamento de moldura).
+        /// </summary>
+        /// <param name="rect">Área.</param>
+        /// <param name="color">Cor.</param>
+        /// <param name="size">Lado de cada ponto.</param>
+        /// <param name="inset">Distância da borda.</param>
+        public void CornerStuds(Rect rect, Color color, float size, float inset)
+        {
+            Fill(new Rect(rect.x + inset, rect.y + inset, size, size), color);
+            Fill(new Rect(rect.xMax - inset - size, rect.y + inset, size, size), color);
+            Fill(new Rect(rect.x + inset, rect.yMax - inset - size, size, size), color);
+            Fill(new Rect(rect.xMax - inset - size, rect.yMax - inset - size, size, size), color);
+        }
+
+        /// <summary>
+        /// Divisória horizontal: duas linhas de bronze com um losango dourado no meio.
+        /// </summary>
+        /// <param name="x">X inicial.</param>
+        /// <param name="y">Y.</param>
+        /// <param name="width">Largura total.</param>
+        public void Divider(float x, float y, float width)
+        {
+            float half = width * 0.5f;
+            var line = new Color(Bronze.r, Bronze.g, Bronze.b, 0.85f);
+            Fill(new Rect(x, y + 4f, half - 10f, 1f), line);
+            Fill(new Rect(x + half + 10f, y + 4f, half - 10f, 1f), line);
+
+            Matrix4x4 previous = GUI.matrix;
+            RotateAroundGuiPivot(45f, new Vector2(x + half, y + 4.5f));
+            Fill(new Rect(x + half - 3.5f, y + 1f, 7f, 7f), Gold);
+            GUI.matrix = previous;
+        }
+
+        /// <summary>
+        /// Gira o desenho seguinte em torno de um ponto, em coordenadas do GUI (as mesmas do <see cref="Rect"/> usado para desenhar).
+        /// O <c>GUIUtility.RotateAroundPivot</c> espera o pivô já em coordenadas de tela; com o HUD escalado
+        /// (<c>GUI.matrix</c> com escala) o pivô cru sai deslocado, então convertemos antes.
+        /// Guarde <c>GUI.matrix</c> antes e restaure depois.
+        /// </summary>
+        /// <param name="angleDegrees">Ângulo em graus (positivo = sentido horário na tela).</param>
+        /// <param name="guiPivot">Pivô em coordenadas do GUI.</param>
+        public static void RotateAroundGuiPivot(float angleDegrees, Vector2 guiPivot)
+        {
+            Vector3 screen = GUI.matrix.MultiplyPoint3x4(new Vector3(guiPivot.x, guiPivot.y, 0f));
+            GUIUtility.RotateAroundPivot(angleDegrees, new Vector2(screen.x, screen.y));
+        }
+
+        /// <summary>
+        /// Trilha segmentada (uma célula por turno, por exemplo). A última célula é destacada como meta.
+        /// </summary>
+        /// <param name="rect">Área.</param>
+        /// <param name="segments">Quantidade de células.</param>
+        /// <param name="filled">Quantas estão preenchidas.</param>
+        /// <param name="fillColor">Cor das preenchidas.</param>
+        /// <param name="goalColor">Cor da última célula.</param>
+        public void SegmentedTrack(Rect rect, int segments, int filled, Color fillColor, Color goalColor)
+        {
+            if (segments <= 0)
+            {
+                return;
+            }
+
+            const float gap = 2f;
+            float cell = (rect.width - gap * (segments - 1)) / segments;
+
+            for (int i = 0; i < segments; i++)
+            {
+                var cellRect = new Rect(rect.x + i * (cell + gap), rect.y, cell, rect.height);
+                bool isGoal = i == segments - 1;
+                Color color = i < filled ? fillColor : isGoal ? new Color(goalColor.r, goalColor.g, goalColor.b, 0.55f) : BarBack;
+                Fill(cellRect, color);
+            }
+        }
 
         /// <summary>
         /// Desenha uma barra de progresso com moldura.

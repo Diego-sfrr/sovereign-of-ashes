@@ -14,16 +14,21 @@ namespace SovereignOfAshes.Presentation
         /// <summary>Fundo atrás do tabuleiro.</summary>
         public Texture2D Backdrop { get; }
 
+        /// <summary>Brilho radial para a sombra do tabuleiro e o halo do Núcleo (opcional).</summary>
+        public Texture2D Glow { get; }
+
         /// <summary>
         /// Cria o conjunto de texturas.
         /// </summary>
         /// <param name="ringTextures">Uma textura por anel.</param>
         /// <param name="backdrop">Fundo.</param>
-        /// <exception cref="ArgumentNullException">Se algum argumento for nulo.</exception>
-        public BoardSkin(Texture2D[] ringTextures, Texture2D backdrop)
+        /// <param name="glow">Brilho radial (opcional).</param>
+        /// <exception cref="ArgumentNullException">Se <paramref name="ringTextures"/> ou <paramref name="backdrop"/> forem nulos.</exception>
+        public BoardSkin(Texture2D[] ringTextures, Texture2D backdrop, Texture2D glow = null)
         {
             RingTextures = ringTextures ?? throw new ArgumentNullException(nameof(ringTextures));
             Backdrop = backdrop ?? throw new ArgumentNullException(nameof(backdrop));
+            Glow = glow;
         }
     }
 
@@ -42,6 +47,8 @@ namespace SovereignOfAshes.Presentation
         private readonly Material[,] _sectorMaterials;
         private readonly Material _coreMaterial;
         private readonly Material _backdropMaterial;
+        private readonly Transform _backdrop;
+        private readonly BoardDecor _decor;
         private bool _disposed;
 
         /// <summary>Geometria usada.</summary>
@@ -64,10 +71,12 @@ namespace SovereignOfAshes.Presentation
             }
 
             _root = new GameObject("Board (gerado)");
+
             _root.transform.SetParent(parent, false);
 
             _backdropMaterial = CreateMaterial(skin.Backdrop);
-            CreatePiece("Fundo", _root.transform, BuildQuad(44f, 26f, 2f), _backdropMaterial);
+            _backdrop = CreatePiece("Fundo", _root.transform, BuildQuad(1f, 1f, 2f), _backdropMaterial);
+            _backdrop.localScale = new Vector3(44f, 26f, 1f);
 
             _coreMaterial = CreateMaterial(null);
             CreatePiece("Núcleo Divino", _root.transform, BuildDisc(layout.CoreRadius, 48), _coreMaterial);
@@ -96,6 +105,29 @@ namespace SovereignOfAshes.Presentation
                     CreatePiece($"Placa {ring}-{plate}", ringObject.transform, mesh, material);
                 }
             }
+
+            _decor = new BoardDecor(layout, _root.transform, skin.Glow);
+        }
+
+        /// <summary>
+        /// Posiciona e dimensiona o fundo pintado para cobrir a área visível (chame quando a câmera ou a janela mudar).
+        /// </summary>
+        /// <param name="center">Centro no mundo.</param>
+        /// <param name="size">Largura e altura no mundo.</param>
+        public void SetBackdropRect(Vector2 center, Vector2 size)
+        {
+            _backdrop.localPosition = new Vector3(center.x, center.y, 0f);
+            _backdrop.localScale = new Vector3(size.x, size.y, 1f);
+        }
+
+        /// <summary>
+        /// Anima os enfeites (faixa de runas e halo do Núcleo).
+        /// </summary>
+        /// <param name="time">Tempo em segundos.</param>
+        /// <param name="coreHealth01">Vida do Núcleo em [0, 1].</param>
+        public void AnimateDecor(float time, float coreHealth01)
+        {
+            _decor.Animate(time, coreHealth01);
         }
 
         /// <summary>
@@ -142,18 +174,20 @@ namespace SovereignOfAshes.Presentation
                 UnityEngine.Object.Destroy(material);
             }
 
+            _decor.Dispose();
             UnityEngine.Object.Destroy(_coreMaterial);
             UnityEngine.Object.Destroy(_backdropMaterial);
             UnityEngine.Object.Destroy(_root);
             _disposed = true;
         }
 
-        private static void CreatePiece(string name, Transform parent, Mesh mesh, Material material)
+        private static Transform CreatePiece(string name, Transform parent, Mesh mesh, Material material)
         {
             var piece = new GameObject(name);
             piece.transform.SetParent(parent, false);
             piece.AddComponent<MeshFilter>().sharedMesh = mesh;
             piece.AddComponent<MeshRenderer>().sharedMaterial = material;
+            return piece.transform;
         }
 
         private static Material CreateMaterial(Texture2D texture)

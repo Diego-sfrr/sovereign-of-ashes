@@ -264,6 +264,11 @@ Proteções: chamar `EndPlayerTurn` fora da vez do jogador ou de dentro de uma f
 - **Só lê e chama:** a view lê o estado da `GameSession` e envia ações pelo `PlayerActionService`. Nenhuma regra fica na camada visual.
 - **Animação desacoplada:** a lógica resolve o turno na hora. A view anima a rotação visual de cada anel (deslocamento contínuo seguindo `RingRotated`) e a marcha dos invasores. A entrada fica bloqueada enquanto anima.
 - **Clique:** `BoardLayout.TryPick` converte o ponto do mundo em (anel, posição) por coordenadas polares, sem colliders nem raycast.
+- **Previsão da marcha:** `MarchForecaster` (lógica pura, em `Invaders`) calcula o que cada invasor fará no próximo turno, aplicando as rotações planejadas e consultando ocupação e barreiras (`ElementEffectSystem.WouldBlock`, sem efeitos colaterais). Um teste compara a previsão com a `InvaderAdvancePhase` real em 300 cenários aleatórios. A interface desenha pontos até o destino, seta, escudo ou espada.
+- **View em duas partes:** `SovereignGameView` (estado, animação, entrada) e `SovereignGameView.Hud.cs` (painéis, retratos, pilhas, carta ampliada, fim de jogo), como `partial class`.
+- **Tabuleiro enfeitado:** `BoardDecor` gera raios de alinhamento, aros de bronze, faixa de runas girando, sombra e halo do Núcleo; `BoardRenderer.SetBackdropRect` faz o fundo pintado cobrir a tela sem distorcer.
+- **Pinturas opcionais:** `ArtLibrary.Painting("UI/backdrop")` etc. carregam de `Resources`; sem o arquivo a interface cai no desenho por código.
+- **IMGUI escalado:** `GUIUtility.RotateAroundPivot` espera o pivô em coordenadas de tela; `GuiTheme.RotateAroundGuiPivot` converte pela `GUI.matrix` (sem isso o pivô sai deslocado quando o HUD está escalado).
 - **Cartas globais:** `AllowedRings = None` são jogadas direto da mão (Sermão, Milagre, Recrutar).
 - **Baralho:** `CardDeck` (compra, mão, descarte, reembaralha) e `DrawPhase` (descarta a mão e compra 5 no início do turno).
 

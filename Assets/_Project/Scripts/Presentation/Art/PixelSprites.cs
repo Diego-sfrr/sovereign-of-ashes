@@ -432,6 +432,42 @@ namespace SovereignOfAshes.Presentation.Art
                 "................",
                 "................"));
 
+            Register(new PixelSpriteDefinition("shield",
+                "................",
+                "..kkkkkkkkkkkk..",
+                "..ksssssssssSk..",
+                "..kswwsssssSSk..",
+                "..ksswsssssSSk..",
+                "..ksssssssSSSk..",
+                "..ksssssssSSSk..",
+                "..kssssssSSSSk..",
+                "...kssssssSSk...",
+                "...kssssSSSSk...",
+                "....kssSSSSk....",
+                ".....kSSSSk.....",
+                "......kSSk......",
+                ".......kk.......",
+                "................",
+                "................"));
+
+            Register(new PixelSpriteDefinition("chevron",
+                "................",
+                "......kkkk......",
+                "......kyyk......",
+                "......kyyk......",
+                "......kyyk......",
+                "..kkkkkyykkkkk..",
+                "..kyyyyyyyyyyk..",
+                "...kyyyyyyyyk...",
+                "....kyyyyyyk....",
+                ".....kyyyyk.....",
+                "......kyyk......",
+                ".......kk.......",
+                "................",
+                "................",
+                "................",
+                "................"));
+
             Register(new PixelSpriteDefinition("rune",
                 "................",
                 "....kkkkkkkk....",
@@ -536,6 +572,30 @@ namespace SovereignOfAshes.Presentation.Art
         /// <returns>Caminho para <c>Resources.Load</c>, ou <c>null</c> se o id for vazio.</returns>
         public static string CardIllustrationPath(string cardId) =>
             string.IsNullOrWhiteSpace(cardId) ? null : $"{CardIllustrationFolder}/{cardId.Trim()}";
+
+        /// <summary>Fundo pintado atrás do tabuleiro (<c>Resources/UI/backdrop</c>).</summary>
+        public const string BackdropPath = "UI/backdrop";
+
+        /// <summary>Tela de derrota (<c>Resources/UI/defeat</c>).</summary>
+        public const string DefeatPath = "UI/defeat";
+
+        /// <summary>Tela de vitória (<c>Resources/UI/victory</c>).</summary>
+        public const string VictoryPath = "UI/victory";
+
+        /// <summary>Verso das cartas, usado nas pilhas de compra e descarte (<c>Resources/UI/cardback</c>).</summary>
+        public const string CardBackPath = "UI/cardback";
+
+        /// <summary>Caminho em <c>Resources</c> do retrato pintado de um invasor (<c>Portraits/&lt;id&gt;</c>).</summary>
+        /// <param name="invaderId">Id do invasor.</param>
+        /// <returns>Caminho, ou <c>null</c> se o id for vazio.</returns>
+        public static string InvaderPortraitPath(string invaderId) =>
+            string.IsNullOrWhiteSpace(invaderId) ? null : $"Portraits/{invaderId.Trim()}";
+
+        /// <summary>Caminho em <c>Resources</c> do retrato pintado de uma civilização.</summary>
+        /// <param name="isHeretic">Se a civilização é herege (retrato sombrio).</param>
+        /// <returns>Caminho para <c>Resources.Load</c>.</returns>
+        public static string CivilizationPortraitPath(bool isHeretic) =>
+            isHeretic ? "Portraits/civ_heretic" : "Portraits/civ_devout";
 
         /// <summary>Sprite da ilustração de uma carta.</summary>
         /// <param name="cardId">Id da carta.</param>
