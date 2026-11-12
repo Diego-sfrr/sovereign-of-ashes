@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SovereignOfAshes.Alchemy;
+using SovereignOfAshes.Alchemy.Effects;
 using SovereignOfAshes.Board;
 using SovereignOfAshes.Cards;
 using SovereignOfAshes.Civilization;
@@ -27,6 +28,7 @@ namespace SovereignOfAshes.Session
                 SectorsPerRing = 8,
                 CoreMaxHealth = 30,
                 Recipes = CreateRecipes(),
+                ElementEffects = CreateElementEffects(),
                 Faith = new FaithEconomyConfig(startingFaith: 3, capacity: 10, baseIncomePerTurn: 2, civilizationYieldPercent: 20),
                 TectonicPlanner = CreateTectonicPlanner(),
                 RationalityGrowthPerTurn = 1,
@@ -115,7 +117,21 @@ namespace SovereignOfAshes.Session
         }
 
         /// <summary>
-        /// Baralho inicial com 10 cartas.
+        /// Efeitos de jogo dos elementos criados pelas fusões padrão.
+        /// Os conceitos puros (Carne, Fogo, Ferro...) não têm efeito: são ingredientes.
+        /// </summary>
+        /// <returns>Catálogo de efeitos.</returns>
+        public static IElementEffectProvider CreateElementEffects() =>
+            new ElementEffectCatalog()
+                .Add("sacred_forge", new BurnEffect(damageOnSector: 3, damageOnNeighbors: 1))
+                .Add("iron_golem", new BarrierEffect(maxDurability: 3, counterDamage: 2))
+                .Add("living_saint", new CivilizationPulseEffect(rationalityDelta: -1, militaryPowerDelta: 0, faithDelta: 0))
+                .Add("wraith", new LifeDrainEffect(damage: 2, healPerHit: 1))
+                .Add("ashes", new FaithSpringEffect(1))
+                .Add("blood_altar", new FaithSpringEffect(2), new CivilizationPulseEffect(rationalityDelta: 1, militaryPowerDelta: 0, faithDelta: 0));
+
+        /// <summary>
+        /// Baralho inicial com 15 cartas.
         /// </summary>
         /// <returns>Cartas do baralho.</returns>
         public static IReadOnlyList<ICardDefinition> CreateStarterDeck()
@@ -137,13 +153,21 @@ namespace SovereignOfAshes.Session
                 "Todas as civilizações: +2 de Poder Militar e +1 de Racionalidade.",
                 2, ConceptType.Iron, TargetRings.None, false, false, new ITileEffect[] { new CivilizationInfluenceEffect(1, 0, 2) });
 
-            var infuseIron = new SimpleCardDefinition("infuse_iron", "Infundir Ferro",
-                "Manifesta Ferro em um setor. Ferro + Fogo = Forja Sagrada.",
-                1, ConceptType.Iron, TargetRings.All, false, false, new ITileEffect[] { new ConceptInfusionEffect(ConceptType.Iron) });
-
-            var infuseFire = new SimpleCardDefinition("infuse_fire", "Infundir Fogo",
-                "Manifesta Fogo em um setor, ou o funde com o que estiver lá.",
-                1, ConceptType.Fire, TargetRings.All, false, false, new ITileEffect[] { new ConceptInfusionEffect(ConceptType.Fire) });
+            // Receitas são ordenadas: o que já está no setor + o conceito jogado. Os textos dizem "sobre X vira Y".
+            var infuseIron = Infusion("infuse_iron", "Infundir Ferro", ConceptType.Iron,
+                "Manifesta Ferro. Sobre Carne vira Golem de Ferro. Fogo depois: Forja.");
+            var infuseFire = Infusion("infuse_fire", "Infundir Fogo", ConceptType.Fire,
+                "Manifesta Fogo. Sobre Ferro vira Forja Sagrada. Tempo depois: Cinzas.");
+            var infuseFlesh = Infusion("infuse_flesh", "Infundir Carne", ConceptType.Flesh,
+                "Manifesta Carne. Ferro depois: Golem. Fé depois: Santo Vivo.");
+            var infuseFaith = Infusion("infuse_faith", "Infundir Fé", ConceptType.Faith,
+                "Manifesta Fé. Sobre Carne vira Santo Vivo. Sangue depois: Altar.");
+            var infuseBlood = Infusion("infuse_blood", "Infundir Sangue", ConceptType.Blood,
+                "Manifesta Sangue. Sobre Fé vira Altar. Medo depois: Espectro.");
+            var infuseFear = Infusion("infuse_fear", "Infundir Medo", ConceptType.Fear,
+                "Manifesta Medo. Sobre Sangue vira Espectro.");
+            var infuseTime = Infusion("infuse_time", "Infundir Tempo", ConceptType.Time,
+                "Manifesta Tempo. Sobre Fogo vira Cinzas, que rendem Fé.");
 
             return new ICardDefinition[]
             {
@@ -152,9 +176,12 @@ namespace SovereignOfAshes.Session
                 sermon, sermon,
                 miracle,
                 recruit,
-                infuseIron,
-                infuseFire
+                infuseIron, infuseFire, infuseFlesh, infuseFaith, infuseBlood, infuseFear, infuseTime
             };
         }
+
+        private static SimpleCardDefinition Infusion(string id, string name, ConceptType concept, string description) =>
+            new SimpleCardDefinition(id, name, description, 1, concept, TargetRings.All, false, false,
+                new ITileEffect[] { new ConceptInfusionEffect(concept) });
     }
 }

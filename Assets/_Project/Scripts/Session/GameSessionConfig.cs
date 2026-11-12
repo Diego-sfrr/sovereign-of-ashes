@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SovereignOfAshes.Alchemy;
+using SovereignOfAshes.Alchemy.Effects;
 using SovereignOfAshes.Cards;
 using SovereignOfAshes.Civilization;
 using SovereignOfAshes.Economy;
@@ -55,6 +56,12 @@ namespace SovereignOfAshes.Session
         /// <summary>Receitas e elementos base da alquimia.</summary>
         public IAlchemyRecipeProvider Recipes { get; set; }
 
+        /// <summary>
+        /// Efeitos de jogo de cada elemento da alquimia. O padrão é vazio: os elementos só aparecem no tabuleiro.
+        /// <see cref="DefaultContent.CreateConfig"/> já preenche os efeitos do conteúdo padrão.
+        /// </summary>
+        public IElementEffectProvider ElementEffects { get; set; } = new ElementEffectCatalog();
+
         /// <summary>Civilizações iniciais.</summary>
         public List<CivilizationSetup> Civilizations { get; } = new List<CivilizationSetup>();
 
@@ -99,6 +106,11 @@ namespace SovereignOfAshes.Session
             if (Faith == null)
             {
                 throw new InvalidOperationException($"{nameof(Faith)} não foi definido.");
+            }
+
+            if (ElementEffects == null)
+            {
+                throw new InvalidOperationException($"{nameof(ElementEffects)} não pode ser nulo (use um catálogo vazio).");
             }
 
             if (TectonicPlanner == null)

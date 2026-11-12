@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using SovereignOfAshes.Alchemy;
+using SovereignOfAshes.Alchemy.Effects;
 using SovereignOfAshes.Board;
 using SovereignOfAshes.Cards;
 using SovereignOfAshes.Civilization;
@@ -38,6 +39,12 @@ namespace SovereignOfAshes.Session
 
         /// <summary>Alquimia.</summary>
         public AlchemySystem Alchemy { get; }
+
+        /// <summary>Receitas da alquimia (se implementar <see cref="IAlchemyRecipeCatalog"/>, a interface consegue listá-las).</summary>
+        public IAlchemyRecipeProvider Recipes { get; }
+
+        /// <summary>Efeitos de jogo dos elementos da alquimia.</summary>
+        public ElementEffectSystem ElementEffects { get; }
 
         /// <summary>Civilizações.</summary>
         public IReadOnlyList<CivilizationEntity> Civilizations { get; }
@@ -122,6 +129,7 @@ namespace SovereignOfAshes.Session
 
             Combat = new CombatResolver(Rules);
             DivineCore = new Combatant("Núcleo Divino", config.CoreMaxHealth, 0);
+            Recipes = config.Recipes;
             Alchemy = new AlchemySystem(config.Recipes, new DefaultElementFactory());
 
             foreach (CivilizationSetup setup in config.Civilizations)
@@ -139,6 +147,10 @@ namespace SovereignOfAshes.Session
             Invaders = new InvaderRoster(Board);
             Bounty = new InvaderBountyRewarder(Invaders, FaithIncome);
 
+            ElementEffects = new ElementEffectSystem(
+                config.ElementEffects,
+                new ElementEffectServices(Board, Invaders, Combat, DivineCore, _civilizations, FaithIncome));
+
             var services = new CardPlayServices(Board, Alchemy, Invaders, Combat, DivineCore, _civilizations);
             Cards = new CardResolver(services, Faith);
             Deck = new CardDeck(config.StartingDeck, config.HandSize, deckRandom);
@@ -149,7 +161,7 @@ namespace SovereignOfAshes.Session
 
             IncomePhase = new FaithIncomePhase(FaithIncome, _civilizations);
             CivilizationPhase = new CivilizationPhase(_civilizations, Combat, DivineCore, Invaders, config.RationalityGrowthPerTurn);
-            AdvancePhase = new InvaderAdvancePhase(Invaders, Board, Combat, DivineCore);
+            AdvancePhase = new InvaderAdvancePhase(Invaders, Board, Combat, DivineCore, ElementEffects);
             SpawnPhase = new InvaderSpawnPhase(Invaders, Board, InvasionPlanner, spawnRandom);
 
             Turns = new TurnSystem(new ITurnPhase[]
@@ -160,6 +172,7 @@ namespace SovereignOfAshes.Session
                 new TectonicShiftPhase(Board, TectonicPlanner),
                 CivilizationPhase,
                 AdvancePhase,
+                new ElementEffectsPhase(ElementEffects, Invaders),
                 SpawnPhase,
                 new GameOverCheckPhase(DivineCore, TurnsToSurvive)
             });

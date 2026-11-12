@@ -1,5 +1,6 @@
 using System;
 using SovereignOfAshes.Alchemy;
+using SovereignOfAshes.Alchemy.Effects;
 using SovereignOfAshes.Board;
 using SovereignOfAshes.Cards;
 using SovereignOfAshes.Civilization;
@@ -65,6 +66,7 @@ namespace SovereignOfAshes.Session
             _session.Invaders.InvaderSlain += OnInvaderSlain;
             _session.Bounty.BountyGranted += OnBounty;
             _session.Rules.CommandmentTriggered += OnCommandment;
+            _session.ElementEffects.EffectTriggered += OnElementEffect;
 
             foreach (CivilizationEntity civilization in _session.Civilizations)
             {
@@ -88,6 +90,7 @@ namespace SovereignOfAshes.Session
             _session.Invaders.InvaderSlain -= OnInvaderSlain;
             _session.Bounty.BountyGranted -= OnBounty;
             _session.Rules.CommandmentTriggered -= OnCommandment;
+            _session.ElementEffects.EffectTriggered -= OnElementEffect;
 
             foreach (CivilizationEntity civilization in _session.Civilizations)
             {
@@ -173,6 +176,9 @@ namespace SovereignOfAshes.Session
                 Write($"+{report.Deposited} de Fé (recompensa).", LogTone.Good);
             }
         }
+
+        private void OnElementEffect(ElementEffectReport report) =>
+            Write(report.Text, report.IsBeneficial ? LogTone.Good : LogTone.Bad);
 
         private void OnCommandment(ICommandment commandment, RuleContext context) =>
             Write($"Mandamento \"{commandment.DisplayName}\" alterou {context.Channel}: {context.BaseAmount} -> {context.Amount}.", LogTone.Info);

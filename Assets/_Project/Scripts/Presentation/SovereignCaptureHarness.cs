@@ -3,6 +3,7 @@ using System.Collections;
 using System.IO;
 using SovereignOfAshes.Board;
 using SovereignOfAshes.Cards;
+using SovereignOfAshes.Core;
 using SovereignOfAshes.Session;
 using SovereignOfAshes.Turns;
 using UnityEngine;
@@ -97,8 +98,23 @@ namespace SovereignOfAshes.Presentation
 
             int shot = 3;
 
+            // Grimório aberto (a lista de receitas e o que cada uma faz).
+            _view.SetGrimoireOpen(true);
+            yield return new WaitForSeconds(0.5f);
+            yield return Capture($"{shot++:00}-grimorio");
+            _view.SetGrimoireOpen(false);
+
             for (int turn = 0; turn < MaxTurns && session.Turns.State == TurnState.AwaitingPlayer; turn++)
             {
+                if (turn == 1)
+                {
+                    // Só para a captura: monta uma Forja e um Golem direto pela alquimia (sem gastar cartas),
+                    // para os efeitos aparecerem nos prints mesmo que a mão sorteada não ajude.
+                    SeedAlchemyForDemo(session);
+                    yield return new WaitForSeconds(0.5f);
+                    yield return Capture($"{shot++:00}-alquimia");
+                }
+
                 while (PlayOne(session))
                 {
                     yield return new WaitForSeconds(0.3f);
@@ -124,6 +140,21 @@ namespace SovereignOfAshes.Presentation
             ScreenCapture.CaptureScreenshot(Path.Combine(_directory, name + ".png"));
             yield return new WaitForEndOfFrame();
             yield return null;
+        }
+
+        private static void SeedAlchemyForDemo(GameSession session)
+        {
+            TectonicSector forge = session.Board.GetSectorAt(RingType.InnerSanctuary, 1);
+            session.Alchemy.ApplyConcept(forge, ConceptType.Iron);
+            session.Alchemy.ApplyConcept(forge, ConceptType.Fire);
+
+            TectonicSector golem = session.Board.GetSectorAt(RingType.MiddleCivilization, 4);
+            session.Alchemy.ApplyConcept(golem, ConceptType.Flesh);
+            session.Alchemy.ApplyConcept(golem, ConceptType.Iron);
+
+            TectonicSector saint = session.Board.GetSectorAt(RingType.MiddleCivilization, 6);
+            session.Alchemy.ApplyConcept(saint, ConceptType.Flesh);
+            session.Alchemy.ApplyConcept(saint, ConceptType.Faith);
         }
 
         private static int FindTargetedCard(GameSession session)

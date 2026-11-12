@@ -42,7 +42,7 @@ namespace SovereignOfAshes.Alchemy
     /// Grimório em memória: alternativa em código ao <see cref="AlchemyRecipeBookSO"/>,
     /// usado pelo conteúdo padrão e pelos testes.
     /// </summary>
-    public sealed class InMemoryRecipeProvider : IAlchemyRecipeProvider
+    public sealed class InMemoryRecipeProvider : IAlchemyRecipeProvider, IAlchemyRecipeCatalog
     {
         private sealed class Recipe : IAlchemyRecipe
         {
@@ -63,6 +63,15 @@ namespace SovereignOfAshes.Alchemy
         private readonly Dictionary<ConceptType, IElementDefinition> _bases = new Dictionary<ConceptType, IElementDefinition>();
         private readonly Dictionary<(string reagentId, ConceptType catalyst), IAlchemyRecipe> _recipes =
             new Dictionary<(string reagentId, ConceptType catalyst), IAlchemyRecipe>();
+
+        // Lista paralela para manter a ordem de cadastro (o dicionário serve só para a busca).
+        private readonly List<IAlchemyRecipe> _recipeList = new List<IAlchemyRecipe>();
+
+        /// <inheritdoc />
+        public IReadOnlyList<IAlchemyRecipe> Recipes => _recipeList;
+
+        /// <inheritdoc />
+        public IReadOnlyDictionary<ConceptType, IElementDefinition> BaseElements => _bases;
 
         /// <summary>
         /// Registra o elemento manifestado por um conceito em setor vazio (substitui se já existir).
@@ -97,7 +106,19 @@ namespace SovereignOfAshes.Alchemy
                 throw new ArgumentNullException(nameof(result));
             }
 
-            _recipes[(reagent.Id, catalyst)] = new Recipe(reagent, catalyst, result);
+            var recipe = new Recipe(reagent, catalyst, result);
+            var key = (reagent.Id, catalyst);
+
+            if (_recipes.TryGetValue(key, out IAlchemyRecipe existing))
+            {
+                _recipeList[_recipeList.IndexOf(existing)] = recipe; // substitui mantendo a posição
+            }
+            else
+            {
+                _recipeList.Add(recipe);
+            }
+
+            _recipes[key] = recipe;
             return this;
         }
 

@@ -11,7 +11,7 @@ namespace SovereignOfAshes.Alchemy
     /// Criado em: Create &gt; Sovereign of Ashes &gt; Alchemy &gt; Recipe Book.
     /// </summary>
     [CreateAssetMenu(fileName = "RecipeBook", menuName = "Sovereign of Ashes/Alchemy/Recipe Book")]
-    public sealed class AlchemyRecipeBookSO : ScriptableObject, IAlchemyRecipeProvider
+    public sealed class AlchemyRecipeBookSO : ScriptableObject, IAlchemyRecipeProvider, IAlchemyRecipeCatalog
     {
         /// <summary>
         /// Associação entre um conceito e o elemento que ele manifesta em um setor vazio.
@@ -34,6 +34,39 @@ namespace SovereignOfAshes.Alchemy
 
         private Dictionary<ConceptType, IElementDefinition> _baseCache;
         private Dictionary<(string reagentId, ConceptType catalyst), IAlchemyRecipe> _recipeCache;
+        private List<IAlchemyRecipe> _recipeOrder;
+
+        /// <inheritdoc />
+        public IReadOnlyList<IAlchemyRecipe> Recipes
+        {
+            get
+            {
+                if (_recipeOrder == null)
+                {
+                    _recipeOrder = new List<IAlchemyRecipe>(_recipes.Count);
+
+                    foreach (AlchemyRecipeSO recipe in _recipes)
+                    {
+                        if (recipe != null && recipe.IsValid)
+                        {
+                            _recipeOrder.Add(recipe);
+                        }
+                    }
+                }
+
+                return _recipeOrder;
+            }
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyDictionary<ConceptType, IElementDefinition> BaseElements
+        {
+            get
+            {
+                EnsureCache();
+                return _baseCache;
+            }
+        }
 
         /// <inheritdoc />
         public bool TryGetBaseElement(ConceptType concept, out IElementDefinition element)
@@ -64,6 +97,7 @@ namespace SovereignOfAshes.Alchemy
         {
             _baseCache = null;
             _recipeCache = null;
+            _recipeOrder = null;
         }
 
         private void EnsureCache()

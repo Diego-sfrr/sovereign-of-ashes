@@ -17,11 +17,12 @@ namespace SovereignOfAshes.Turns.Phases
         private readonly TectonicBoard _board;
         private readonly CombatResolver _combat;
         private readonly ICombatant _divineCore;
+        private readonly ISectorBarrier _barrier;
 
         /// <summary>Disparado quando um invasor ataca o Núcleo. Parâmetros: invasor, dano bruto.</summary>
         public event Action<InvaderEntity, int> InvaderAttackedCore;
 
-        /// <summary>Disparado quando um invasor não avança porque o destino está ocupado.</summary>
+        /// <summary>Disparado quando um invasor não avança: o destino está ocupado ou uma barreira o impediu.</summary>
         public event Action<InvaderEntity> InvaderBlocked;
 
         /// <inheritdoc />
@@ -34,13 +35,20 @@ namespace SovereignOfAshes.Turns.Phases
         /// <param name="board">Tabuleiro.</param>
         /// <param name="combat">Resolvedor de combate.</param>
         /// <param name="divineCore">Núcleo Divino.</param>
-        /// <exception cref="ArgumentNullException">Se algum argumento for nulo.</exception>
-        public InvaderAdvancePhase(InvaderRoster roster, TectonicBoard board, CombatResolver combat, ICombatant divineCore)
+        /// <param name="barrier">Barreiras que podem impedir a entrada em um setor (opcional; ex.: Golem de Ferro).</param>
+        /// <exception cref="ArgumentNullException">Se algum argumento obrigatório for nulo.</exception>
+        public InvaderAdvancePhase(
+            InvaderRoster roster,
+            TectonicBoard board,
+            CombatResolver combat,
+            ICombatant divineCore,
+            ISectorBarrier barrier = null)
         {
             _roster = roster ?? throw new ArgumentNullException(nameof(roster));
             _board = board ?? throw new ArgumentNullException(nameof(board));
             _combat = combat ?? throw new ArgumentNullException(nameof(combat));
             _divineCore = divineCore ?? throw new ArgumentNullException(nameof(divineCore));
+            _barrier = barrier;
         }
 
         /// <inheritdoc />
@@ -75,7 +83,9 @@ namespace SovereignOfAshes.Turns.Phases
                     continue;
                 }
 
-                if (neighbors.Inner == null || !_roster.TryMove(invader, neighbors.Inner))
+                if (neighbors.Inner == null
+                    || (_barrier != null && _barrier.TryBlock(invader, neighbors.Inner))
+                    || !_roster.TryMove(invader, neighbors.Inner))
                 {
                     InvaderBlocked?.Invoke(invader);
                 }

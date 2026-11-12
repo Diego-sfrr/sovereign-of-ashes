@@ -248,8 +248,11 @@ sequenceDiagram
 | 3 | `TectonicShiftPhase` | Aplica as rotações do `ITectonicShiftPlanner`, que é determinístico e permite à UI mostrar a rotação seguinte |
 | 4 | `CivilizationPhase` | Racionalidade +N; devotas atacam o invasor mais perigoso, hereges atacam o Núcleo (Poder Militar, via `CombatResolver`) |
 | 5 | `InvaderAdvancePhase` | Invasores avançam um anel para dentro, até o setor alinhado; no Santuário Interno, atacam o Núcleo |
-| 6 | `InvaderSpawnPhase` | Novas ondas surgem em placas livres dos Ermos Externos |
-| 7 | `GameOverCheckPhase` | Derrota se o Núcleo morreu; vitória ao chegar no turno N |
+| 6 | `ElementEffectsPhase` | Os elementos da alquimia agem (Forja queima, Espectro drena, Santo acalma, Cinzas e Altar rendem Fé); mortos são removidos e geram recompensa |
+| 7 | `InvaderSpawnPhase` | Novas ondas surgem em placas livres dos Ermos Externos |
+| 8 | `GameOverCheckPhase` | Derrota se o Núcleo morreu; vitória ao chegar no turno N |
+
+A `DrawPhase` (compra) vem logo depois da renda e antes da fase do jogador.
 
 Proteções: chamar `EndPlayerTurn` fora da vez do jogador ou de dentro de uma fase lança exceção. Um turno inteiro sem fase de jogador também lança exceção, em vez de travar o jogo num loop.
 
@@ -264,7 +267,28 @@ Proteções: chamar `EndPlayerTurn` fora da vez do jogador ou de dentro de uma f
 - **Cartas globais:** `AllowedRings = None` são jogadas direto da mão (Sermão, Milagre, Recrutar).
 - **Baralho:** `CardDeck` (compra, mão, descarte, reembaralha) e `DrawPhase` (descarta a mão e compra 5 no início do turno).
 
-Ordem completa do turno: Renda → **Compra** → Jogador → Rotação → Civilizações → Marcha → Surgimento → Julgamento.
+Ordem completa do turno: Renda → **Compra** → Jogador → Rotação → Civilizações → Marcha → **Efeitos Alquímicos** → Surgimento → Julgamento.
+
+## Alquimia com efeitos de jogo
+
+Fundir elementos não só troca o desenho: cada elemento criado tem **efeitos** (`ElementEffect`, Strategy), executados pelo `ElementEffectSystem` (POCO).
+
+| Elemento (receita: no setor + conceito jogado) | Efeito |
+|---|---|
+| Forja Sagrada (Ferro + Fogo) | `BurnEffect`: 3 de dano ao invasor no setor, 1 nos vizinhos, todo turno |
+| Golem de Ferro (Carne + Ferro) | `BarrierEffect`: bloqueia a marcha, fere quem tenta passar (2) e aguenta 3 investidas |
+| Santo Vivo (Carne + Fé) | `CivilizationPulseEffect`: -1 de Razão por turno |
+| Espectro (Sangue + Medo) | `LifeDrainEffect`: 2 de dano a invasores no setor e vizinhos; cura o Núcleo em 1 por invasor atingido |
+| Cinzas (Fogo + Tempo) | `FaithSpringEffect`: +1 de Fé por turno |
+| Altar de Sacrifício (Fé + Sangue) | `FaithSpringEffect` (+2) e `CivilizationPulseEffect` (+1 de Razão): Fé em troca de heresia |
+
+- **Ordem importa:** a receita é *(o que já está no setor, conceito jogado)*. Com uma carta de infusão selecionada, o tooltip do setor mostra o resultado ("Funde em: Forja Sagrada" ou "Sem reação").
+- **Dois pontos de entrada:** `OnTurnEnd` (efeito periódico, na `ElementEffectsPhase`) e `BlocksInvader`/`OnInvaderBlocked` (a barreira consulta a `InvaderAdvancePhase` pela interface `ISectorBarrier`, então a marcha não conhece a alquimia: DIP).
+- **Estado por instância:** os efeitos são sem estado e compartilhados; a durabilidade do Golem fica em `SectorElement.GetCounter/SetCounter`.
+- **Mandamentos valem:** dano, cura e Fé dos efeitos passam por `CombatResolver`/`FaithIncomeService`, com o elemento como `Source`.
+- **Dados:** `IElementEffectProvider` (padrão: `ElementEffectCatalog` por id de elemento, em `DefaultContent.CreateElementEffects`). Efeitos ainda não têm ScriptableObject: elementos de um `AlchemyRecipeBookSO` só agem se o id coincidir com o do catálogo.
+- **Grimório:** a interface lista receitas e efeitos via `IAlchemyRecipeCatalog` (botão ou tecla **G**).
+- **Novo efeito:** herde de `ElementEffect` e registre no catálogo; novo elemento: receita + id no catálogo.
 
 ## Invasores
 

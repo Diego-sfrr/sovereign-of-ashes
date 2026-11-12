@@ -23,7 +23,8 @@ receitas de alquimia, a civilização "Filhos da Cinza" e ondas de invasores).
 | Jogar carta com alvo | Clique na carta, depois no setor destacado do tabuleiro |
 | Jogar carta de uso imediato | Clique na carta ("Uso imediato") |
 | Cancelar seleção | Botão direito do mouse |
-| Ver detalhes de um setor | Passe o mouse sobre ele |
+| Ver detalhes de um setor | Passe o mouse sobre ele (com uma carta de infusão selecionada, mostra o que ela faria ali) |
+| Abrir o Grimório (receitas de alquimia) | Botão **GRIMÓRIO** ou tecla **G**; **Esc** fecha |
 | Encerrar o turno | Botão **ENCERRAR TURNO** |
 
 ### Objetivo
@@ -35,6 +36,9 @@ Sobreviva **20 turnos** com o Núcleo Divino de pé.
 - Sua civilização devota combate os invasores, mas a **Razão** dela cresce todo turno.
   No máximo, ela vira **herege** e passa a atacar o Núcleo. Use **Sermão** para conter isso.
 - O painel **"Ao fim deste turno"** mostra quais anéis vão girar e qual onda vai chegar.
+- **Alquimia:** as cartas "Infundir" manifestam conceitos; jogar um conceito sobre outro os funde em um
+  elemento que age sozinho (Forja queima invasores, Golem bloqueia a marcha, Santo acalma a Razão,
+  Espectro drena vida, Cinzas e Altar rendem Fé). **A ordem importa**: veja as receitas no Grimório.
 
 ## Testes automáticos
 

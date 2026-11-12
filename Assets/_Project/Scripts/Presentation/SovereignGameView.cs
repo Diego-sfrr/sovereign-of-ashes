@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
+using SovereignOfAshes.Alchemy;
+using SovereignOfAshes.Alchemy.Effects;
 using SovereignOfAshes.Board;
 using SovereignOfAshes.Cards;
 using SovereignOfAshes.Civilization;
@@ -81,6 +83,7 @@ namespace SovereignOfAshes.Presentation
         private string _hint = string.Empty;
         private float _hintUntil;
         private float _guiScale = 1f;
+        private bool _showGrimoire;
         private int _lastCoreHealth;
         private int _lastFaith;
         private int _lastTurn;
@@ -120,6 +123,10 @@ namespace SovereignOfAshes.Presentation
         /// <summary>Seleciona uma carta da mão (usado pelo modo de captura automática).</summary>
         /// <param name="handIndex">Índice na mão.</param>
         internal void SelectCardForCapture(int handIndex) => _selectedCard = handIndex;
+
+        /// <summary>Abre ou fecha o Grimório (usado pelo modo de captura automática).</summary>
+        /// <param name="open">Se deve ficar aberto.</param>
+        internal void SetGrimoireOpen(bool open) => _showGrimoire = open;
 
         /// <summary>Limpa a seleção (usado pelo modo de captura automática).</summary>
         internal void ClearSelection() => _selectedCard = -1;
@@ -193,6 +200,7 @@ namespace SovereignOfAshes.Presentation
             _lastFaith = _session.Faith.Current;
             _lastTurn = _session.Turns.TurnNumber;
             _session.Board.RingRotated += OnRingRotated;
+            _session.ElementEffects.EffectTriggered += OnElementEffect;
         }
 
         private void Unbind()
@@ -200,11 +208,18 @@ namespace SovereignOfAshes.Presentation
             if (_session != null)
             {
                 _session.Board.RingRotated -= OnRingRotated;
+                _session.ElementEffects.EffectTriggered -= OnElementEffect;
             }
 
             _board?.Dispose();
             _board = null;
             _session = null;
+        }
+
+        private void OnElementEffect(ElementEffectReport report)
+        {
+            // O setor continua com Anel/Placa mesmo que o elemento tenha acabado de desmoronar.
+            _puffs.Burst(GetPlateCenter(report.Sector), report.IsBeneficial ? GuiTheme.Gold : GuiTheme.Bad, 10);
         }
 
         private void OnRingRotated(RingType ring, int delta)
@@ -456,6 +471,7 @@ namespace SovereignOfAshes.Presentation
             float width = Screen.width / _guiScale;
             float height = ReferenceHeight;
 
+            HandleKeys();
             UpdateHover(width, height);
 
             _embers.Draw(width, height, _theme.White);
@@ -473,6 +489,12 @@ namespace SovereignOfAshes.Presentation
             {
                 DrawGameOver(width, height);
                 return;
+            }
+
+            if (_showGrimoire)
+            {
+                DrawGrimoire(width);
+                return; // modal: a mão e o tabuleiro não recebem cliques enquanto o Grimório está aberto
             }
 
             DrawHand(width, height);
@@ -514,6 +536,149 @@ namespace SovereignOfAshes.Presentation
             }
 
             _theme.ShadowText(new Rect(x, 12f, 220f, 40f), state, _theme.Number, stateColor);
+
+            // Botão do Grimório (também abre com a tecla G).
+            var grimoire = new Rect(width - 224f, 10f, 208f, 44f);
+            Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
+            bool hover = grimoire.Contains(mouse);
+            _theme.Frame(grimoire, hover || _showGrimoire ? GuiTheme.Gold : GuiTheme.Bronze,
+                _showGrimoire ? new Color(0.34f, 0.22f, 0.08f) : new Color(0.16f, 0.11f, 0.08f), 3f);
+            _theme.Image(new Rect(grimoire.x + 8f, grimoire.y + 6f, 32f, 32f), _art.Sprite("book"), Color.white);
+            _theme.ShadowText(new Rect(grimoire.x + 36f, grimoire.y, grimoire.width - 40f, grimoire.height), "GRIMÓRIO  [G]",
+                _theme.SmallNumber, Color.white);
+
+            if (GUI.Button(grimoire, GUIContent.none, GUIStyle.none))
+            {
+                _showGrimoire = !_showGrimoire;
+            }
+        }
+
+        private void HandleKeys()
+        {
+            Event current = Event.current;
+
+            if (current == null || current.type != EventType.KeyDown)
+            {
+                return;
+            }
+
+            if (current.keyCode == KeyCode.G)
+            {
+                _showGrimoire = !_showGrimoire;
+            }
+            else if (current.keyCode == KeyCode.Escape && _showGrimoire)
+            {
+                _showGrimoire = false;
+            }
+        }
+
+        private void DrawGrimoire(float width)
+        {
+            const float panelWidth = 1020f;
+            const float iconSize = 52f;
+            const float textX = 230f;
+            float x = (width - panelWidth) * 0.5f;
+            float y = 96f;
+
+            var catalog = _session.Recipes as IAlchemyRecipeCatalog;
+            int rows = catalog != null ? catalog.Recipes.Count : 0;
+
+            // Altura: cabeçalho + linhas (medidas pelo texto) + rodapé.
+            float contentHeight = 0f;
+            var rowHeights = new float[rows];
+
+            for (int i = 0; i < rows; i++)
+            {
+                rowHeights[i] = MeasureGrimoireRow(catalog.Recipes[i], panelWidth - textX - 28f);
+                contentHeight += rowHeights[i];
+            }
+
+            var panel = new Rect(x, y, panelWidth, 96f + contentHeight + 78f);
+            _theme.Fill(new Rect(0f, 0f, width, ReferenceHeight), new Color(0f, 0f, 0f, 0.7f));
+            _theme.Panel(panel);
+
+            GUI.Label(new Rect(panel.x + 28f, panel.y + 18f, panel.width - 56f, 32f), "Grimório da Alquimia", _theme.Title);
+            GUI.Label(new Rect(panel.x + 28f, panel.y + 48f, panel.width - 56f, 40f),
+                "Jogue um conceito sobre o elemento que já está no setor. A ordem importa: o elemento do setor + o conceito da carta. " +
+                "Elementos criados agem sozinhos, no fim de cada turno.", _theme.Small);
+
+            float rowY = panel.y + 96f;
+
+            if (catalog == null)
+            {
+                GUI.Label(new Rect(panel.x + 28f, rowY, panel.width - 56f, 26f), "Esta fonte de receitas não pode ser listada.", _theme.Label);
+            }
+
+            for (int i = 0; i < rows; i++)
+            {
+                IAlchemyRecipe recipe = catalog.Recipes[i];
+                float rowHeight = rowHeights[i];
+                _theme.Fill(new Rect(panel.x + 20f, rowY, panel.width - 40f, 2f), new Color(GuiTheme.Bronze.r, GuiTheme.Bronze.g, GuiTheme.Bronze.b, 0.5f));
+
+                float iy = rowY + (rowHeight - iconSize) * 0.5f;
+                float ix = panel.x + 30f;
+                _theme.Image(new Rect(ix, iy, iconSize, iconSize), _art.Element(recipe.Reagent), Color.white);
+                _theme.ShadowText(new Rect(ix + iconSize, iy, 26f, iconSize), "+", _theme.Number, GuiTheme.Gold);
+                _theme.Image(new Rect(ix + iconSize + 26f, iy, iconSize, iconSize), _art.Sprite(ArtCatalog.ForConcept(recipe.Catalyst)), Color.white);
+                _theme.ShadowText(new Rect(ix + iconSize * 2f + 26f, iy, 26f, iconSize), "=", _theme.Number, GuiTheme.Gold);
+                _theme.Image(new Rect(ix + iconSize * 2f + 52f, iy - 4f, iconSize + 8f, iconSize + 8f), _art.Element(recipe.Result), Color.white);
+
+                float tx = panel.x + textX + 28f;
+                float tw = panelWidth - textX - 56f;
+                float ty = rowY + 10f;
+                GUI.Label(new Rect(tx, ty, tw, 24f), $"<b>{recipe.Result.DisplayName}</b>", _theme.Title);
+                ty += 26f;
+                GUI.Label(new Rect(tx, ty, tw, 20f),
+                    $"{recipe.Reagent.DisplayName} + {DisplayNames.Concept(recipe.Catalyst)}", _theme.Small);
+                ty += 22f;
+
+                IReadOnlyList<ElementEffect> effects = _session.ElementEffects.GetEffects(recipe.Result);
+
+                if (effects.Count == 0)
+                {
+                    GUI.Label(new Rect(tx, ty, tw, 20f), "Sem efeito: serve de ingrediente.", _theme.Small);
+                }
+
+                foreach (ElementEffect effect in effects)
+                {
+                    var content = new GUIContent(effect.Description);
+                    float h = _theme.Label.CalcHeight(content, tw);
+                    GUI.Label(new Rect(tx, ty, tw, h), content, _theme.Label);
+                    ty += h + 2f;
+                }
+
+                rowY += rowHeight;
+            }
+
+            var close = new Rect(panel.xMax - 188f, panel.yMax - 62f, 160f, 42f);
+            Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
+            bool hover = close.Contains(mouse);
+            _theme.Frame(close, hover ? GuiTheme.Gold : GuiTheme.Bronze, hover ? new Color(0.55f, 0.16f, 0.10f) : new Color(0.40f, 0.11f, 0.08f), 3f);
+            _theme.ShadowText(close, "FECHAR", _theme.SmallNumber, Color.white);
+            GUI.Label(new Rect(panel.x + 28f, panel.yMax - 58f, 600f, 40f), "Conceitos puros (Carne, Fogo, Ferro...) não têm efeito próprio.", _theme.Small);
+
+            if (GUI.Button(close, GUIContent.none, GUIStyle.none))
+            {
+                _showGrimoire = false;
+            }
+        }
+
+        private float MeasureGrimoireRow(IAlchemyRecipe recipe, float textWidth)
+        {
+            float height = 10f + 26f + 22f;
+            IReadOnlyList<ElementEffect> effects = _session.ElementEffects.GetEffects(recipe.Result);
+
+            if (effects.Count == 0)
+            {
+                height += 22f;
+            }
+
+            foreach (ElementEffect effect in effects)
+            {
+                height += _theme.Label.CalcHeight(new GUIContent(effect.Description), textWidth) + 2f;
+            }
+
+            return Mathf.Max(92f, height + 14f);
         }
 
         private void DrawLeftPanel(Rect area)
@@ -870,6 +1035,29 @@ namespace SovereignOfAshes.Presentation
                  .Append(_session.Board.GetPositionOf(_hovered));
             _text.Append('\n').Append(_hovered.IsEmpty ? "Setor vazio" : _hovered.Content.Definition.DisplayName);
 
+            if (_hovered.Content is SectorElement element)
+            {
+                IReadOnlyList<ElementEffect> effects = _session.ElementEffects.GetEffects(element.Definition);
+
+                foreach (ElementEffect effect in effects)
+                {
+                    _text.Append("\n<color=").Append(GuiTheme.Hex(GuiTheme.Gold)).Append('>').Append(effect.Description);
+
+                    if (effect is BarrierEffect barrier)
+                    {
+                        int left = element.GetCounter(BarrierEffect.DurabilityCounter, barrier.MaxDurability);
+                        _text.Append(" Restam ").Append(left).Append('.');
+                    }
+
+                    _text.Append("</color>");
+                }
+
+                if (effects.Count == 0)
+                {
+                    _text.Append("\n<color=").Append(GuiTheme.Hex(GuiTheme.TextDim)).Append(">Ingrediente: sem efeito próprio.</color>");
+                }
+            }
+
             InvaderEntity invader = _session.Invaders.GetInvaderAt(_hovered);
 
             if (invader != null)
@@ -879,12 +1067,50 @@ namespace SovereignOfAshes.Presentation
                      .Append(" HP, ataque ").Append(invader.Attack).Append("</color>");
             }
 
+            AppendInfusionPreview(_hovered);
+
             Vector2 mouse = Event.current.mousePosition;
             var content = new GUIContent(_text.ToString());
             float contentHeight = _theme.Label.CalcHeight(content, 244f) + 22f;
             var rect = new Rect(mouse.x + 20f, mouse.y + 20f, 272f, contentHeight);
             _theme.Panel(rect);
             GUI.Label(new Rect(rect.x + 14f, rect.y + 11f, 244f, contentHeight - 22f), content, _theme.Label);
+        }
+
+        /// <summary>
+        /// Com uma carta de infusão selecionada, diz o que ela faria neste setor. A ordem das receitas importa,
+        /// e sem esta dica o jogador gastaria Fé em fusões que não acontecem.
+        /// </summary>
+        private void AppendInfusionPreview(TectonicSector sector)
+        {
+            if (_selectedCard < 0 || _selectedCard >= _session.Deck.Hand.Count)
+            {
+                return;
+            }
+
+            foreach (ITileEffect effect in _session.Deck.Hand[_selectedCard].Effects)
+            {
+                if (!(effect is ConceptInfusionEffect infusion))
+                {
+                    continue;
+                }
+
+                string concept = DisplayNames.Concept(infusion.Concept);
+
+                if (_session.Alchemy.TryPreview(sector, infusion.Concept, out IElementDefinition result))
+                {
+                    string verb = sector.IsEmpty ? "Manifesta" : "Funde em";
+                    _text.Append("\n<color=").Append(GuiTheme.Hex(GuiTheme.Good)).Append("><b>").Append(verb).Append(":</b> ")
+                         .Append(result.DisplayName).Append("</color>");
+                }
+                else
+                {
+                    _text.Append("\n<color=").Append(GuiTheme.Hex(GuiTheme.Bad)).Append(">Sem reação: ").Append(concept)
+                         .Append(" se perde aqui.</color>");
+                }
+
+                return;
+            }
         }
 
         private void UpdateHover(float width, float height)

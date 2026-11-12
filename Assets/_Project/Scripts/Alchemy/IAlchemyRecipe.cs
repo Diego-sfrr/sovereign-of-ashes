@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SovereignOfAshes.Core;
 
 namespace SovereignOfAshes.Alchemy
@@ -39,5 +40,18 @@ namespace SovereignOfAshes.Alchemy
         /// <param name="recipe">Receita encontrada, se houver.</param>
         /// <returns><c>true</c> se existe uma receita para a combinação.</returns>
         bool TryGetRecipe(IElementDefinition reagent, ConceptType catalyst, out IAlchemyRecipe recipe);
+    }
+
+    /// <summary>
+    /// Capacidade opcional de um <see cref="IAlchemyRecipeProvider"/>: permitir listar tudo o que conhece
+    /// (usada pelo Grimório da interface). Fontes que não sabem enumerar simplesmente não a implementam.
+    /// </summary>
+    public interface IAlchemyRecipeCatalog
+    {
+        /// <summary>Todas as receitas, na ordem de cadastro.</summary>
+        IReadOnlyList<IAlchemyRecipe> Recipes { get; }
+
+        /// <summary>Elemento base manifestado por cada conceito em setor vazio.</summary>
+        IReadOnlyDictionary<ConceptType, IElementDefinition> BaseElements { get; }
     }
 }
