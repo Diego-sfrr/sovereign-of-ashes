@@ -112,6 +112,16 @@ namespace SovereignOfAshes.Presentation
 
             for (int turn = 0; turn < MaxTurns && session.Turns.State == TurnState.AwaitingPlayer; turn++)
             {
+                if (turn == 3)
+                {
+                    // Só para a captura: tira vida do Núcleo direto, para mostrar corações parciais, o rastro do dano e a pulsação.
+                    session.DivineCore.TakeDamage(session.DivineCore.CurrentHealth - 6);
+                    yield return new WaitForSeconds(0.25f);
+                    yield return Capture($"{shot++:00}-coracoes-dano");
+                    yield return new WaitForSeconds(1.2f);
+                    yield return Capture($"{shot++:00}-coracoes-vida-baixa");
+                }
+
                 if (turn == 1)
                 {
                     // Só para a captura: monta uma Forja e um Golem direto pela alquimia (sem gastar cartas),

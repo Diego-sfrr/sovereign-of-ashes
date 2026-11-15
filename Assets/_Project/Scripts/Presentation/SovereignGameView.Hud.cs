@@ -229,7 +229,7 @@ namespace SovereignOfAshes.Presentation
             y += 74f;
 
             // Fé.
-            _theme.Image(new Rect(x, y - 1f, 20f, 20f), _art.Sprite("gem"), Color.white);
+            _theme.Image(new Rect(x, y - 1f, 20f, 20f), _art.Sprite("crystal"), Color.white);
             GUI.Label(new Rect(x + 24f, y, 90f, LineHeight), $"Fé {civ.Faith}/{civ.MaxFaith}", _theme.Small);
             _theme.DrawBar(new Rect(x + 118f, y + 5f, w - 118f, 11f), (float)civ.Faith / civ.MaxFaith, GuiTheme.FaithColor);
             y += LineStep;
@@ -382,23 +382,225 @@ namespace SovereignOfAshes.Presentation
 
         // ------------------------------------------------------------------ Barra do topo, pilhas e carta ampliada
 
-        private void DrawTopBarExtras(float width)
+        // ------------------------------------------------------------------ Barra do topo: Fé em cristais, vida em corações
+
+        private const float ResourceAnimSeconds = 0.7f;
+        private const float ClusterWidth = 290f;
+
+        private int _faithFrom;
+        private int _faithTo;
+        private float _faithChangeTime = -10f;
+        private int _hpFrom;
+        private int _hpTo;
+        private float _hpChangeTime = -10f;
+        private float _hpTrail;
+
+        private void ResetResourceAnimation()
         {
-            // Mesmas colunas do DrawTopBar: ícone da Fé em (centro - 130) e do coração 160px depois.
-            float faithX = width * 0.5f - 330f + 200f;
-            float heartX = faithX + 160f;
-            _theme.DrawBar(new Rect(faithX + 42f, 47f, 110f, 5f), (float)_session.Faith.Current / _session.Faith.Capacity, GuiTheme.FaithColor);
+            _faithFrom = _faithTo = _session.Faith.Current;
+            _faithChangeTime = -10f;
+            _hpFrom = _hpTo = _session.DivineCore.CurrentHealth;
+            _hpChangeTime = -10f;
+            _hpTrail = _hpTo;
+        }
 
-            float health = (float)_session.DivineCore.CurrentHealth / _session.DivineCore.MaxHealth;
-            _theme.DrawBar(new Rect(heartX + 42f, 47f, 110f, 5f), health, Color.Lerp(GuiTheme.Bad, GuiTheme.Good, health));
+        private void NoteFaithChange(int from, int to)
+        {
+            _faithFrom = from;
+            _faithTo = to;
+            _faithChangeTime = Time.time;
+        }
 
-            int goal = _session.TurnsToSurvive;
+        private void NoteCoreChange(int from, int to)
+        {
+            _hpFrom = from;
+            _hpTo = to;
+            _hpChangeTime = Time.time;
+        }
 
-            if (goal > 0)
+        /// <summary>
+        /// O "rastro" da vida demora um pouco para acompanhar uma perda (como nos jogos de luta):
+        /// o jogador vê quanto acabou de perder. Ganhos aparecem na hora.
+        /// </summary>
+        private void UpdateResourceAnimation(float deltaTime)
+        {
+            float hp = _session.DivineCore.CurrentHealth;
+
+            if (hp >= _hpTrail)
             {
-                _theme.SegmentedTrack(new Rect(10f, 56f, width - 20f, 4f), goal, Mathf.Clamp(_session.Turns.TurnNumber, 0, goal),
+                _hpTrail = hp;
+            }
+            else if (Time.time - _hpChangeTime > 0.45f)
+            {
+                _hpTrail = Mathf.MoveTowards(_hpTrail, hp, deltaTime * Mathf.Max(4f, _session.DivineCore.MaxHealth * 0.6f));
+            }
+        }
+
+        private static Rect Scaled(Rect rect, float scale)
+        {
+            float w = rect.width * scale;
+            float h = rect.height * scale;
+            return new Rect(rect.center.x - w * 0.5f, rect.center.y - h * 0.5f, w, h);
+        }
+
+        private void DrawTopBar(float width)
+        {
+            _theme.Frame(new Rect(0f, 0f, width, TopBarHeight), GuiTheme.Bronze, new Color(0.06f, 0.05f, 0.07f, 0.97f), 3f);
+            _theme.Image(new Rect(18f, 12f, 40f, 40f), _art.Sprite("core"), Color.white);
+            _theme.ShadowText(new Rect(66f, 12f, 280f, 40f), "SOVEREIGN OF ASHES", _theme.Number, GuiTheme.Gold);
+
+            TurnSystem turns = _session.Turns;
+            string goal = _session.TurnsToSurvive > 0 ? $" / {_session.TurnsToSurvive}" : string.Empty;
+            _theme.ShadowText(new Rect(380f, 6f, 200f, 30f), $"TURNO {turns.TurnNumber}{goal}", _theme.Number, Color.white);
+
+            string state;
+            Color stateColor;
+
+            switch (turns.State)
+            {
+                case TurnState.AwaitingPlayer: state = "SUA VEZ"; stateColor = GuiTheme.Good; break;
+                case TurnState.GameOver: state = "FIM DE JOGO"; stateColor = GuiTheme.Gold; break;
+                default: state = "RESOLVENDO..."; stateColor = GuiTheme.TextDim; break;
+            }
+
+            _theme.ShadowText(new Rect(380f, 33f, 200f, 18f), state, _theme.Tag, stateColor);
+
+            const float faithX = 610f;
+            const float heartsX = 940f;
+            DrawFaithCrystals(faithX, 8f);
+            DrawCoreHearts(heartsX, 8f);
+            _faithGuiPosition = new Vector2(faithX + ClusterWidth * 0.5f, 30f);
+
+            // Botão do Grimório (também abre com a tecla G).
+            var grimoire = new Rect(width - 224f, 10f, 208f, 44f);
+            Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
+            bool hover = grimoire.Contains(mouse);
+            _theme.Frame(grimoire, hover || _showGrimoire ? GuiTheme.Gold : GuiTheme.Bronze,
+                _showGrimoire ? new Color(0.34f, 0.22f, 0.08f) : new Color(0.16f, 0.11f, 0.08f), 3f);
+            _theme.Image(new Rect(grimoire.x + 8f, grimoire.y + 6f, 32f, 32f), _art.Sprite("book"), Color.white);
+            _theme.ShadowText(new Rect(grimoire.x + 36f, grimoire.y, grimoire.width - 40f, grimoire.height), "GRIMÓRIO  [G]",
+                _theme.SmallNumber, Color.white);
+
+            if (GUI.Button(grimoire, GUIContent.none, GUIStyle.none))
+            {
+                _showGrimoire = !_showGrimoire;
+            }
+
+            int turnGoal = _session.TurnsToSurvive;
+
+            if (turnGoal > 0)
+            {
+                _theme.SegmentedTrack(new Rect(10f, 56f, width - 20f, 4f), turnGoal, Mathf.Clamp(turns.TurnNumber, 0, turnGoal),
                     GuiTheme.Gold, GuiTheme.Good);
             }
+        }
+
+        /// <summary>
+        /// A Fé do jogador como cristais, um por ponto de capacidade: cheios brilham, vazios ficam escuros.
+        /// Ao ganhar, os cristais novos "estouram"; ao gastar, os gastados se dissolvem.
+        /// </summary>
+        private void DrawFaithCrystals(float x, float y)
+        {
+            int capacity = Mathf.Max(1, _session.Faith.Capacity);
+            int current = _session.Faith.Current;
+            float step = Mathf.Min(29f, ClusterWidth / capacity);
+            float size = step - 2f;
+            Texture2D crystal = _art.Sprite("crystal");
+            float age = Time.time - _faithChangeTime;
+            bool animating = age >= 0f && age < ResourceAnimSeconds;
+            float t = animating ? age / ResourceAnimSeconds : 1f;
+
+            for (int i = 0; i < capacity; i++)
+            {
+                var rect = new Rect(x + i * step, y + 3f, size, size);
+                bool gained = animating && _faithTo > _faithFrom && i >= _faithFrom && i < _faithTo;
+                bool spent = animating && _faithTo < _faithFrom && i >= _faithTo && i < _faithFrom;
+
+                if (i < current)
+                {
+                    if (_skin.Glow != null)
+                    {
+                        float glow = 0.26f + 0.12f * Mathf.Sin(Time.time * 3f + i * 0.7f) + (gained ? 0.35f * (1f - t) : 0f);
+                        _theme.Image(Scaled(rect, 2.2f), _skin.Glow, new Color(0.35f, 0.6f, 1f, glow));
+                    }
+
+                    Rect drawn = gained ? Scaled(rect, 1f + 0.55f * (1f - t)) : rect;
+                    _theme.Image(drawn, crystal, gained ? Color.Lerp(new Color(0.75f, 0.92f, 1f), Color.white, t) : Color.white);
+                }
+                else
+                {
+                    _theme.Image(rect, crystal, new Color(0.18f, 0.19f, 0.26f, 0.95f));
+
+                    if (spent)
+                    {
+                        _theme.Image(Scaled(rect, 1f + 0.5f * t), crystal, new Color(0.75f, 0.9f, 1f, 1f - t));
+                    }
+                }
+            }
+
+            _theme.ShadowText(new Rect(x, y + 31f, ClusterWidth, 18f), $"Fé  {current}/{_session.Faith.Capacity}", _theme.Tag, GuiTheme.FaithColor);
+        }
+
+        /// <summary>
+        /// A vida do Núcleo como corações (no máximo 10; cada um vale vários pontos quando a vida é alta),
+        /// com preenchimento parcial. Ao levar dano, os corações atingidos tremem e deixam um rastro claro;
+        /// com vida baixa, pulsam em vermelho.
+        /// </summary>
+        private void DrawCoreHearts(float x, float y)
+        {
+            int max = Mathf.Max(1, _session.DivineCore.MaxHealth);
+            int hp = _session.DivineCore.CurrentHealth;
+            int perHeart = Mathf.Max(1, (max + 9) / 10);
+            int hearts = (max + perHeart - 1) / perHeart;
+            float step = Mathf.Min(29f, ClusterWidth / hearts);
+            float size = step - 2f;
+            Texture2D heart = _art.Sprite("heart");
+            float age = Time.time - _hpChangeTime;
+            bool animating = age >= 0f && age < 0.5f;
+            bool damage = animating && _hpTo < _hpFrom;
+            bool heal = animating && _hpTo > _hpFrom;
+            bool low = hp * 4 <= max;
+            float beat = low ? 0.5f + 0.5f * Mathf.Sin(Time.time * 7f) : 0f;
+
+            for (int i = 0; i < hearts; i++)
+            {
+                float low01 = i * perHeart;
+                float fill = Mathf.Clamp01((hp - low01) / perHeart);
+                float trail = Mathf.Clamp01((_hpTrail - low01) / perHeart);
+                bool touched = low01 < Mathf.Max(_hpFrom, _hpTo) && low01 + perHeart > Mathf.Min(_hpFrom, _hpTo);
+                float shake = damage && touched ? Mathf.Sin(age * 70f) * 3f * (1f - age / 0.5f) : 0f;
+                var rect = new Rect(x + i * step + shake, y + 3f, size, size);
+
+                if (low && fill > 0f && _skin.Glow != null)
+                {
+                    _theme.Image(Scaled(rect, 2f), _skin.Glow, new Color(1f, 0.15f, 0.1f, 0.15f + 0.3f * beat));
+                }
+
+                _theme.Image(rect, heart, new Color(0.2f, 0.12f, 0.16f, 0.95f));
+                DrawPartialSprite(rect, heart, trail, new Color(1f, 0.88f, 0.88f, 0.95f));
+
+                Rect drawn = heal && touched ? Scaled(rect, 1.25f - 0.25f * (age / 0.5f)) : rect;
+                DrawPartialSprite(drawn, heart, fill, heal && touched ? new Color(0.8f, 1f, 0.8f) : Color.white);
+            }
+
+            Color label = hp * 3 <= max ? GuiTheme.Bad : GuiTheme.Text;
+            _theme.ShadowText(new Rect(x, y + 31f, ClusterWidth, 18f), $"Núcleo  {hp}/{max}", _theme.Tag, label);
+        }
+
+        /// <summary>Desenha só a parte esquerda do sprite (de 0 a 1), mantendo os pixels nítidos.</summary>
+        private void DrawPartialSprite(Rect rect, Texture2D sprite, float fill, Color tint)
+        {
+            fill = Mathf.Clamp01(fill);
+
+            if (fill <= 0f)
+            {
+                return;
+            }
+
+            Color previous = GUI.color;
+            GUI.color = tint;
+            GUI.DrawTextureWithTexCoords(new Rect(rect.x, rect.y, rect.width * fill, rect.height), sprite, new Rect(0f, 0f, fill, 1f));
+            GUI.color = previous;
         }
 
         private void DrawPiles(float height)
@@ -460,7 +662,7 @@ namespace SovereignOfAshes.Presentation
 
             Texture2D illustration = _art.CardIllustration(card);
             CardPainter.DrawZoomed(new Rect(x, y, zoomWidth, zoomHeight), card, illustration != null ? illustration : _art.Card(card),
-                _art.Sprite("gem"), _theme, _session.Faith.CanAfford(card.Cost), illustration != null);
+                _art.Sprite("crystal"), _theme, _session.Faith.CanAfford(card.Cost), illustration != null);
         }
 
         // ------------------------------------------------------------------ Fim de jogo

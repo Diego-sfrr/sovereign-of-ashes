@@ -89,10 +89,10 @@ namespace SovereignOfAshes.Presentation
 
             GUI.Label(new Rect(rect.x + 12f, rect.y + 162f, rect.width - 24f, rect.height - 170f), card.Description, theme.CardBody);
 
-            // O corpo da gema ocupa ~40% superior do sprite; o número fica centrado nele.
+            // O cristal de custo (o mesmo da barra de Fé); o número fica no centro do corpo dele.
             var gemRect = new Rect(rect.x - 16f, rect.y - 18f, 56f, 56f);
             theme.Image(gemRect, gem, Color.white);
-            theme.ShadowText(new Rect(gemRect.x, gemRect.y + gemRect.height * 0.40f - 14f, gemRect.width, 28f), card.Cost.ToString(),
+            theme.ShadowText(new Rect(gemRect.x, gemRect.y + gemRect.height * 0.47f - 14f, gemRect.width, 28f), card.Cost.ToString(),
                 theme.CostNumber, state.Affordable ? Color.white : GuiTheme.Bad);
 
             if (!state.Usable)
@@ -144,7 +144,7 @@ namespace SovereignOfAshes.Presentation
 
             var gemRect = new Rect(rect.x - 18f * s, rect.y - 20f * s, 60f * s, 60f * s);
             theme.Image(gemRect, gem, Color.white);
-            theme.ShadowText(new Rect(gemRect.x, gemRect.y + gemRect.height * 0.40f - 15f * s, gemRect.width, 30f * s), card.Cost.ToString(),
+            theme.ShadowText(new Rect(gemRect.x, gemRect.y + gemRect.height * 0.47f - 15f * s, gemRect.width, 30f * s), card.Cost.ToString(),
                 theme.CostNumberLarge, affordable ? Color.white : GuiTheme.Bad);
         }
 

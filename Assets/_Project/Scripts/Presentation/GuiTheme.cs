@@ -74,6 +74,9 @@ namespace SovereignOfAshes.Presentation
         /// <summary>Números flutuantes (branco; a cor vem de <see cref="GUI.color"/>).</summary>
         public GUIStyle FloatText { get; }
 
+        /// <summary>Rótulo pequeno em negrito, alinhado à esquerda (branco; a cor vem de <see cref="GUI.color"/>).</summary>
+        public GUIStyle Tag { get; }
+
         /// <summary>Nome da carta ampliada.</summary>
         public GUIStyle CardNameLarge { get; }
 
@@ -115,6 +118,7 @@ namespace SovereignOfAshes.Presentation
             Number = MakeText(22, Color.white, FontStyle.Bold, TextAnchor.MiddleLeft);
             SmallNumber = MakeText(13, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             CostNumber = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+            Tag = MakeText(13, Color.white, FontStyle.Bold, TextAnchor.MiddleLeft);
             CardNameLarge = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             CardBodyLarge = MakeText(17, Text, FontStyle.Normal, TextAnchor.UpperCenter);
             CardTypeLarge = MakeText(15, Gold, FontStyle.Italic, TextAnchor.MiddleCenter);

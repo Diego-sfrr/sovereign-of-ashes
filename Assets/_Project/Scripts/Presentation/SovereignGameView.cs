@@ -204,6 +204,7 @@ namespace SovereignOfAshes.Presentation
             _session.Board.RingRotated += OnRingRotated;
             _session.ElementEffects.EffectTriggered += OnElementEffect;
             CreateForecaster();
+            ResetResourceAnimation();
         }
 
         private void Unbind()
@@ -271,6 +272,7 @@ namespace SovereignOfAshes.Presentation
             _camera.transform.position = new Vector3(_cameraBase.x + shake.x, _cameraBase.y + shake.y, _cameraBase.z);
 
             UpdateWorldDecor();
+            UpdateResourceAnimation(deltaTime);
             RefreshValidTargets();
             PaintBoard();
         }
@@ -322,6 +324,11 @@ namespace SovereignOfAshes.Presentation
                 _puffs.Burst(Vector2.zero, GuiTheme.Good, 14);
             }
 
+            if (core != _lastCoreHealth)
+            {
+                NoteCoreChange(_lastCoreHealth, core);
+            }
+
             _lastCoreHealth = core;
 
             // Fé.
@@ -329,6 +336,7 @@ namespace SovereignOfAshes.Presentation
 
             if (faith != _lastFaith)
             {
+                NoteFaithChange(_lastFaith, faith);
                 int delta = faith - _lastFaith;
                 _floatingText.Spawn(_faithGuiPosition + new Vector2(0f, 96f), false,
                     delta > 0 ? $"+{delta} Fé" : $"{delta} Fé", delta > 0 ? GuiTheme.FaithColor : GuiTheme.TextDim);
@@ -505,58 +513,6 @@ namespace SovereignOfAshes.Presentation
             DrawHint(width, height);
             DrawSectorTooltip();
             HandleBoardClick(width, height);
-        }
-
-        private void DrawTopBar(float width)
-        {
-            _theme.Frame(new Rect(0f, 0f, width, TopBarHeight), GuiTheme.Bronze, new Color(0.06f, 0.05f, 0.07f, 0.97f), 3f);
-            _theme.Image(new Rect(18f, 12f, 40f, 40f), _art.Sprite("core"), Color.white);
-            _theme.ShadowText(new Rect(66f, 12f, 280f, 40f), "SOVEREIGN OF ASHES", _theme.Number, GuiTheme.Gold);
-
-            TurnSystem turns = _session.Turns;
-            float x = width * 0.5f - 330f;
-
-            string goal = _session.TurnsToSurvive > 0 ? $" / {_session.TurnsToSurvive}" : string.Empty;
-            _theme.ShadowText(new Rect(x, 12f, 200f, 40f), $"TURNO {turns.TurnNumber}{goal}", _theme.Number, Color.white);
-            x += 200f;
-
-            _theme.Image(new Rect(x, 14f, 36f, 36f), _art.Sprite("gem"), Color.white);
-            _theme.ShadowText(new Rect(x + 42f, 12f, 120f, 40f), $"{_session.Faith.Current}/{_session.Faith.Capacity}", _theme.Number, GuiTheme.FaithColor);
-            _faithGuiPosition = new Vector2(x + 70f, 30f);
-            x += 160f;
-
-            _theme.Image(new Rect(x, 14f, 36f, 36f), _art.Sprite("heart"), Color.white);
-            _theme.ShadowText(new Rect(x + 42f, 12f, 120f, 40f), $"{_session.DivineCore.CurrentHealth}/{_session.DivineCore.MaxHealth}", _theme.Number, GuiTheme.Bad);
-            x += 160f;
-
-            string state;
-            Color stateColor;
-
-            switch (turns.State)
-            {
-                case TurnState.AwaitingPlayer: state = "SUA VEZ"; stateColor = GuiTheme.Good; break;
-                case TurnState.GameOver: state = "FIM DE JOGO"; stateColor = GuiTheme.Gold; break;
-                default: state = "RESOLVENDO..."; stateColor = GuiTheme.TextDim; break;
-            }
-
-            _theme.ShadowText(new Rect(x, 12f, 220f, 40f), state, _theme.Number, stateColor);
-
-            // Botão do Grimório (também abre com a tecla G).
-            var grimoire = new Rect(width - 224f, 10f, 208f, 44f);
-            Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
-            bool hover = grimoire.Contains(mouse);
-            _theme.Frame(grimoire, hover || _showGrimoire ? GuiTheme.Gold : GuiTheme.Bronze,
-                _showGrimoire ? new Color(0.34f, 0.22f, 0.08f) : new Color(0.16f, 0.11f, 0.08f), 3f);
-            _theme.Image(new Rect(grimoire.x + 8f, grimoire.y + 6f, 32f, 32f), _art.Sprite("book"), Color.white);
-            _theme.ShadowText(new Rect(grimoire.x + 36f, grimoire.y, grimoire.width - 40f, grimoire.height), "GRIMÓRIO  [G]",
-                _theme.SmallNumber, Color.white);
-
-            if (GUI.Button(grimoire, GUIContent.none, GUIStyle.none))
-            {
-                _showGrimoire = !_showGrimoire;
-            }
-
-            DrawTopBarExtras(width);
         }
 
         private void HandleKeys()
@@ -784,7 +740,7 @@ namespace SovereignOfAshes.Presentation
 
                 Texture2D illustration = _art.CardIllustration(card);
 
-                CardPainter.Draw(rect, card, illustration != null ? illustration : _art.Card(card), _art.Sprite("gem"), _theme, new CardVisualState
+                CardPainter.Draw(rect, card, illustration != null ? illustration : _art.Card(card), _art.Sprite("crystal"), _theme, new CardVisualState
                 {
                     Selected = selected,
                     Hovered = hovered,

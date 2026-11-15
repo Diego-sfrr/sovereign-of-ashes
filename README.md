@@ -28,6 +28,14 @@ receitas de alquimia, a civilização "Filhos da Cinza" e ondas de invasores).
 | Abrir o Grimório (receitas de alquimia) | Botão **GRIMÓRIO** ou tecla **G**; **Esc** fecha |
 | Encerrar o turno | Botão **ENCERRAR TURNO** |
 
+### Barra do topo
+
+- **Fé em cristais:** um por ponto de capacidade. Cristal aceso = Fé disponível; apagado = vazio. Ao ganhar Fé os
+  cristais novos "estouram"; ao gastar, os gastados se dissolvem. O custo de cada carta é um cristal igual.
+- **Vida do Núcleo em corações** (até 10; com vida alta cada coração vale vários pontos), com preenchimento parcial.
+  Ao levar dano os corações atingidos tremem e deixam um rastro claro; com vida baixa (25% ou menos) pulsam em vermelho.
+- **Trilha de turnos** na borda inferior: um segmento por turno até a vitória.
+
 ### Objetivo
 
 Sobreviva **20 turnos** com o Núcleo Divino de pé.
