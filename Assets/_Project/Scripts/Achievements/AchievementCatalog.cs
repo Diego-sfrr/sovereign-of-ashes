@@ -63,7 +63,7 @@ namespace SovereignOfAshes.Achievements
             new AchievementDefinition("veteran", "Veterano", "Termine 10 partidas.", 10),
             new AchievementDefinition("victory", "O Trono Resiste", "Vença uma partida."),
             new AchievementDefinition("covenant_win", "Pacto Cumprido", "Vença uma partida usando um Pacto."),
-            new AchievementDefinition("divine_hand", "Mão Divina", "Use a Intervenção Divina 10 vezes (somando todas as partidas).", 10),
+            new AchievementDefinition("divine_hand", "Mão Divina", "Use a Intervenção Divina 10 vezes (em todas as partidas).", 10),
             new AchievementDefinition("civ_master", "Seitas Unidas", "Vença com cada uma das 4 civilizações.", 4),
             new AchievementDefinition("by_a_thread", "Por um Fio", "Vença com o Núcleo com 3 ou menos de vida."),
             new AchievementDefinition("untouched", "Intocável", "Vença sem o Núcleo sofrer dano algum."),

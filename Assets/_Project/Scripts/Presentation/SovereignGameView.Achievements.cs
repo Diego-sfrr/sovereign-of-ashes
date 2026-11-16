@@ -55,16 +55,20 @@ namespace SovereignOfAshes.Presentation
 
         private void DrawAchievements(float width, float height)
         {
-            var panel = new Rect((width - 1180f) * 0.5f, 36f, 1180f, 828f);
+            var panel = new Rect((width - 1180f) * 0.5f, 30f, 1180f, height - 60f);
             _theme.Panel(panel);
             _theme.ShadowText(new Rect(panel.x, panel.y + 16f, panel.width, 44f),
                 $"Conquistas  {_achievements.UnlockedCount}/{AchievementCatalog.All.Count}", _theme.Heading, GuiTheme.Gold);
             _theme.Divider(panel.x + 60f, panel.y + 68f, panel.width - 120f);
 
             const float entryWidth = 530f;
-            const float entryHeight = 72f;
-            const float stepY = 79f;
+            int rows = (AchievementCatalog.All.Count + 1) / 2;
             float top = panel.y + 90f;
+
+            // A lista ocupa o espaço entre o título e o botão VOLTAR, nunca passa dele.
+            float available = panel.yMax - 100f - top;
+            float stepY = Mathf.Min(79f, available / rows);
+            float entryHeight = stepY - 7f;
 
             for (int i = 0; i < AchievementCatalog.All.Count; i++)
             {
