@@ -64,6 +64,7 @@ namespace SovereignOfAshes.Session
             _session.AdvancePhase.InvaderAttackedCore += OnInvaderAttackedCore;
             _session.SpawnPhase.SpawnOverflow += OnSpawnOverflow;
             _session.TraitsPhase.ElementCorrupted += OnElementCorrupted;
+            _session.RingControl.Used += OnRingControlUsed;
             _session.TraitsPhase.RationalityPushed += OnRationalityPushed;
             _session.Invaders.InvaderSpawned += OnInvaderSpawned;
             _session.Invaders.InvaderSlain += OnInvaderSlain;
@@ -90,6 +91,7 @@ namespace SovereignOfAshes.Session
             _session.AdvancePhase.InvaderAttackedCore -= OnInvaderAttackedCore;
             _session.SpawnPhase.SpawnOverflow -= OnSpawnOverflow;
             _session.TraitsPhase.ElementCorrupted -= OnElementCorrupted;
+            _session.RingControl.Used -= OnRingControlUsed;
             _session.TraitsPhase.RationalityPushed -= OnRationalityPushed;
             _session.Invaders.InvaderSpawned -= OnInvaderSpawned;
             _session.Invaders.InvaderSlain -= OnInvaderSlain;
@@ -164,6 +166,28 @@ namespace SovereignOfAshes.Session
 
         private void OnInvaderAttackedCore(InvaderEntity invader, int damage) =>
             Write($"{invader.Name} atacou o Núcleo ({damage} de dano).", LogTone.Bad);
+
+        private void OnRingControlUsed(RingActionKind kind, RingType ring, RotationDirection direction)
+        {
+            if (kind == RingActionKind.Freeze)
+            {
+                Write($"Você congelou o anel {RingName(ring)}: ele ignora a próxima rotação.", LogTone.Highlight);
+            }
+            else
+            {
+                Write($"Você girou o anel {RingName(ring)} por conta própria.", LogTone.Highlight);
+            }
+        }
+
+        private static string RingName(RingType ring)
+        {
+            switch (ring)
+            {
+                case RingType.OuterWilderness: return "dos Ermos Externos";
+                case RingType.MiddleCivilization: return "da Civilização";
+                default: return "do Santuário Interno";
+            }
+        }
 
         private void OnElementCorrupted(InvaderEntity invader, TectonicSector sector, ISectorContent destroyed) =>
             Write($"{invader.Name} profanou e destruiu {destroyed?.Definition?.DisplayName ?? "um elemento"}.", LogTone.Bad);

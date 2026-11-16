@@ -34,11 +34,15 @@ receitas de alquimia, a civilização "Filhos da Cinza" e ondas de invasores).
 Ao abrir o jogo aparece o **menu principal** (Jogar agora, Como jogar, Configurações, Sair). Em **Configurações**, salvas automaticamente:
 **Dificuldade** (Fácil / Normal / Difícil: vida do Núcleo, Fé inicial e crescimento das invasões), **Tela cheia**, **Animações** (normal/rápidas) e **Semente** (0 = aleatória; o mesmo número repete a partida). Dificuldade e semente valem a partir da próxima partida. Não há volume porque o jogo ainda não tem áudio.
 
+**Civilizações:** antes do pacto você escolhe sua seita: **Filhos da Cinza** (equilibrada), **Forjadores do Abismo** (Poder 8 e um Golem inicial), **Flagelantes do Eclipse** (cada carta de Sangue ou Medo cura o Núcleo, mas a Razão sobe 2 por turno) ou **Eremitas do Tempo** (girar anel de graça, Razão só sobe nos turnos pares).
+
+**Intervenção Divina:** o painel ao lado do tabuleiro gasta Fé para **girar um anel 1 casa** (1 Fé) para qualquer lado ou **congelá-lo** (2 Fé): ele ignora a próxima rotação programada. Só 1 intervenção por turno; a previsão de marcha já mostra o efeito.
+
 **Pactos e Oferendas:** antes de cada partida você escolhe 1 de 3 **Pactos** (regras especiais com vantagem e preço, como "Mão Larga" ou "Mundo em Rotação"), ou segue sem pacto. A cada 3 turnos surge uma **Oferenda Divina**: escolha 1 de 3 cartas para levar ao baralho (ou recuse e ganhe +1 de Fé). O pool tem 10 cartas novas, entre elas **Giro Divino / Contragiro** (giram um anel inteiro), **Exílio** (empurra um invasor para fora) e **Dízimo de Sangue** (vida por Fé).
 
 **Novos invasores:** o **Profanador** destrói o elemento do setor em que chega; o **Arauto Herege** e o **Inquisidor** (chefe do turno 10) somam Razão às civilizações a cada turno. No modo infinito eles escalam sem parar.
 
-**Conquistas:** 19 conquistas ganhas jogando (primeiro sangue, mestre alquimista, vencer sem dano, chegar ao turno 50 no modo infinito...). Veja a lista e o progresso em **CONQUISTAS** no menu; um aviso desce do topo quando você ganha uma. O progresso fica salvo.
+**Conquistas:** 21 conquistas ganhas jogando (primeiro sangue, mestre alquimista, vencer sem dano, chegar ao turno 50 no modo infinito...). Veja a lista e o progresso em **CONQUISTAS** no menu; um aviso desce do topo quando você ganha uma. O progresso fica salvo.
 
 **Modo infinito (hardcore):** botão no menu principal. As ondas nunca acabam (Cultistas todo turno, Colossos de 2 em 2 a partir do turno 4, uma orda dobrada a cada 5 turnos, e todos ficam mais fortes a cada 10 turnos), com a dificuldade Difícil fixa. Não há vitória: o objetivo é bater o recorde de turnos, que fica salvo e aparece no botão.
 

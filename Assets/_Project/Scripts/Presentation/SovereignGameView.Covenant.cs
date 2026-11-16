@@ -30,7 +30,7 @@ namespace SovereignOfAshes.Presentation
             _theme.ShadowText(new Rect(0f, 48f, width, 56f), "ESCOLHA UM PACTO", _theme.Heading, GuiTheme.Gold);
             _theme.Divider(width * 0.5f - 280f, 108f, 560f);
             _theme.ShadowText(new Rect(0f, 120f, width, 30f),
-                $"{modeName}: um pacto muda as regras desta partida. Toda vantagem tem um preço.", _theme.Centered, GuiTheme.Text);
+                $"{modeName} com {CivilizationCatalog.Find(_pendingCivilization)?.Name ?? "os Filhos da Cinza"}: um pacto muda as regras desta partida. Toda vantagem tem um preço.", _theme.Centered, GuiTheme.Text);
 
             const float cardWidth = 360f;
             const float cardHeight = 430f;
@@ -70,7 +70,7 @@ namespace SovereignOfAshes.Presentation
 
                 if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
                 {
-                    StartGame(_pendingMode, covenant.Id);
+                    StartGame(_pendingMode, covenant.Id, _pendingCivilization);
                     return;
                 }
             }
@@ -79,12 +79,12 @@ namespace SovereignOfAshes.Presentation
 
             if (MenuButton(new Rect(width * 0.5f - 330f, below, 320f, 56f), "JOGAR SEM PACTO"))
             {
-                StartGame(_pendingMode);
+                StartGame(_pendingMode, null, _pendingCivilization);
             }
 
             if (MenuButton(new Rect(width * 0.5f + 10f, below, 320f, 56f), "VOLTAR"))
             {
-                _uiScreen = UiScreen.Menu;
+                _uiScreen = UiScreen.Civilization;
             }
         }
     }

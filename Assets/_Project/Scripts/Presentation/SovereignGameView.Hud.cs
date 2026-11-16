@@ -54,7 +54,7 @@ namespace SovereignOfAshes.Presentation
             _board.AnimateDecor(Time.time, (float)_session.DivineCore.CurrentHealth / _session.DivineCore.MaxHealth);
 
             _predictions.Clear();
-            IReadOnlyList<RingRotation> plan = _session.TectonicPlanner.PlanShifts(_session.Turns.TurnNumber);
+            IReadOnlyList<RingRotation> plan = _session.PlannedShifts(_session.Turns.TurnNumber);
 
             foreach (InvaderEntity invader in _session.Invaders.Invaders)
             {

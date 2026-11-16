@@ -51,6 +51,7 @@ namespace SovereignOfAshes.Achievements
             session.Turns.TurnEnded += OnTurnEnded;
             session.Turns.GameOver += OnGameOver;
             session.Rewards.OfferResolved += OnOfferResolved;
+            session.RingControl.Used += OnRingControlUsed;
 
             foreach (CivilizationEntity civilization in session.Civilizations)
             {
@@ -75,6 +76,7 @@ namespace SovereignOfAshes.Achievements
             _session.Turns.TurnEnded -= OnTurnEnded;
             _session.Turns.GameOver -= OnGameOver;
             _session.Rewards.OfferResolved -= OnOfferResolved;
+            _session.RingControl.Used -= OnRingControlUsed;
 
             foreach (CivilizationEntity civilization in _session.Civilizations)
             {
@@ -124,6 +126,9 @@ namespace SovereignOfAshes.Achievements
             _lastCoreHealth = core.CurrentHealth;
         }
 
+        private void OnRingControlUsed(RingActionKind kind, Board.RingType ring, Board.RotationDirection direction) =>
+            GrantIfReached("divine_hand", _progress.Add(AchievementCatalog.CounterInterventions, 1));
+
         private void OnOfferResolved(Cards.ICardDefinition chosen)
         {
             if (chosen == null)
@@ -162,6 +167,18 @@ namespace SovereignOfAshes.Achievements
             if (result.Outcome == GameOutcome.Victory)
             {
                 Grant("victory");
+
+                string civilizationKey = AchievementCatalog.CounterCivWinPrefix + (_run.CivilizationId ?? CivilizationCatalog.DefaultId);
+
+                if (_progress.Get(civilizationKey) == 0)
+                {
+                    _progress.Add(civilizationKey, 1);
+                }
+
+                if (_progress.CivilizationsWon() >= CivilizationCatalog.All.Count)
+                {
+                    Grant("civ_master");
+                }
 
                 if (!string.IsNullOrEmpty(_run.CovenantId))
                 {

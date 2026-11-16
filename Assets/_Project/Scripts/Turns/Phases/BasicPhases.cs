@@ -62,6 +62,8 @@ namespace SovereignOfAshes.Turns.Phases
     {
         private readonly TectonicBoard _board;
         private readonly ITectonicShiftPlanner _planner;
+        private readonly Func<IReadOnlyList<RingRotation>, IReadOnlyList<RingRotation>> _filter;
+        private readonly Action _afterApply;
 
         /// <inheritdoc />
         public string Name => "Rotação Tectônica";
@@ -71,17 +73,24 @@ namespace SovereignOfAshes.Turns.Phases
         /// </summary>
         /// <param name="board">Tabuleiro.</param>
         /// <param name="planner">Planejador das rotações.</param>
+        /// <param name="filter">Opcional: remove rotações programadas (anéis congelados pelo jogador).</param>
+        /// <param name="afterApply">Opcional: chamado depois de aplicar as rotações (descongela os anéis).</param>
         /// <exception cref="ArgumentNullException">Se algum argumento for nulo.</exception>
-        public TectonicShiftPhase(TectonicBoard board, ITectonicShiftPlanner planner)
+        public TectonicShiftPhase(TectonicBoard board, ITectonicShiftPlanner planner,
+            Func<IReadOnlyList<RingRotation>, IReadOnlyList<RingRotation>> filter = null, Action afterApply = null)
         {
             _board = board ?? throw new ArgumentNullException(nameof(board));
             _planner = planner ?? throw new ArgumentNullException(nameof(planner));
+            _filter = filter;
+            _afterApply = afterApply;
         }
 
         /// <inheritdoc />
         public PhaseResult Execute(int turnNumber)
         {
-            _board.ApplyRotations(_planner.PlanShifts(turnNumber));
+            IReadOnlyList<RingRotation> planned = _planner.PlanShifts(turnNumber);
+            _board.ApplyRotations(_filter != null ? _filter(planned) : planned);
+            _afterApply?.Invoke();
             return PhaseResult.Continue;
         }
     }

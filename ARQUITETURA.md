@@ -282,6 +282,11 @@ Ordem completa do turno: Renda → **Compra** → Jogador → Rotação → Civi
 - `SovereignBootstrapper` não cria partida sozinho: `StartNewGame(settings)`, `RestartSession()`, `CloseSession()` (evento `SessionClosed`). `_skipMenu` pula o menu.
 - `SovereignGameView.Menu.cs` desenha menu principal, Como jogar, Configurações e pausa (`UiScreen`); sem sessão, a view só mostra o menu.
 
+## Civilizações jogáveis e Intervenção Divina
+
+- `CivilizationDefinition`/`CivilizationCatalog` (Session): cada seita substitui a civilização padrão na `GameSessionConfig` (números, cartas, giro da Razão) e registra habilidades passivas em `GameSessionConfig.StartHooks` (ações que a `GameSession` executa no `Start`, ouvindo eventos da sessão). O `SovereignBootstrapper` aplica a civilização (`GameSettings.CivilizationId`, não salvo) depois da dificuldade e antes do pacto.
+- `RingControlService` (Session): `TryRotate` (1 Fé, 1 casa) e `TryFreeze` (2 Fé; o anel ignora a próxima rotação). 1 por turno, só se `Player.CanAct`. A `TectonicShiftPhase` recebe `FilterPlanned`/`ClearFrozen`, e a interface usa `GameSession.PlannedShifts` para a previsão, que continua batendo com a fase real.
+
 ## Oferendas, Pactos e habilidades de invasores
 
 - `RewardSystem` (Session): a cada `RewardEveryNTurns` turnos, ao começar a vez do jogador, cria uma `RewardOffer` com 3 cartas distintas do `RewardPool` (sorteio determinístico pela semente). `Choose(i)` põe a carta num ponto aleatório do monte de compra (`CardDeck.AddCard`); `Skip()` dá Fé. Enquanto há oferenda pendente `PlayerActionService.ActionBlocker` impede jogar cartas; encerrar o turno sem decidir conta como recusar.

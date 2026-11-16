@@ -534,6 +534,7 @@ namespace SovereignOfAshes.Presentation
 
             DrawHand(width, height);
             DrawHint(width, height);
+            DrawRingControl(width);
 
             if (ShouldShowOffer)
             {
@@ -683,7 +684,7 @@ namespace SovereignOfAshes.Presentation
         private float DrawForecast(float x, float y, float w)
         {
             int turn = _session.Turns.TurnNumber;
-            IReadOnlyList<RingRotation> shifts = _session.TectonicPlanner.PlanShifts(turn);
+            IReadOnlyList<RingRotation> shifts = _session.PlannedShifts(turn);
             IReadOnlyList<InvaderSpawnOrder> spawns = _session.InvasionPlanner.PlanSpawns(turn);
 
             if (shifts.Count == 0 && spawns.Count == 0)

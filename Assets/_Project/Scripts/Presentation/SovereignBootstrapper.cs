@@ -215,6 +215,9 @@ namespace SovereignOfAshes.Presentation
             DifficultyPresets.Apply(config, endless ? Difficulty.Hard : LastSettings.Difficulty,
                 replaceFaith: _faithEconomy == null, replaceInvasion: _invasionProfile == null && !endless);
 
+            // A civilização escolhida troca a padrão (vem antes do pacto, que pode mexer nos números dela).
+            CivilizationCatalog.Find(LastSettings.CivilizationId)?.Apply(config);
+
             // O Pacto escolhido no menu vem depois da dificuldade (a vida do Núcleo, por exemplo, já foi escalada).
             Covenant covenant = CovenantCatalog.Find(LastSettings.CovenantId);
             covenant?.Apply(config);

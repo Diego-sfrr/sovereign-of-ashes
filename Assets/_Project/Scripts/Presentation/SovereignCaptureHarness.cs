@@ -85,6 +85,9 @@ namespace SovereignOfAshes.Presentation
             _view.ShowScreenForCapture("howto");
             yield return new WaitForSeconds(0.4f);
             yield return Capture("m3-como-jogar");
+            _view.ShowScreenForCapture("civilization");
+            yield return new WaitForSeconds(0.4f);
+            yield return Capture("m8-civilizacoes");
             _view.ShowScreenForCapture("covenant");
             yield return new WaitForSeconds(0.4f);
             yield return Capture("m7-pactos");
@@ -166,6 +169,15 @@ namespace SovereignOfAshes.Presentation
                     SeedAlchemyForDemo(session);
                     yield return new WaitForSeconds(0.5f);
                     yield return Capture($"{shot++:00}-alquimia");
+                }
+
+                if (turn == 4)
+                {
+                    // Intervenção Divina: congela os Ermos (a previsão e o painel passam a mostrar isso).
+                    session.Faith.Add(5);
+                    session.RingControl.TryFreeze(RingType.OuterWilderness);
+                    yield return new WaitForSeconds(0.5f);
+                    yield return Capture($"{shot++:00}-anel-congelado");
                 }
 
                 while (PlayOne(session))

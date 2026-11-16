@@ -41,9 +41,11 @@ namespace SovereignOfAshes.Achievements
     public static class AchievementCatalog
     {
         // Nomes dos contadores acumulados entre partidas.
-        internal const string CounterKills = "kills";
-        internal const string CounterFaithSpent = "faith";
-        internal const string CounterGames = "games";
+        public const string CounterKills = "kills";
+        public const string CounterFaithSpent = "faith";
+        public const string CounterGames = "games";
+        public const string CounterInterventions = "interventions";
+        public const string CounterCivWinPrefix = "winciv_";
 
         /// <summary>Todas as conquistas, na ordem de exibição.</summary>
         public static IReadOnlyList<AchievementDefinition> All { get; } = new List<AchievementDefinition>
@@ -61,6 +63,8 @@ namespace SovereignOfAshes.Achievements
             new AchievementDefinition("veteran", "Veterano", "Termine 10 partidas.", 10),
             new AchievementDefinition("victory", "O Trono Resiste", "Vença uma partida."),
             new AchievementDefinition("covenant_win", "Pacto Cumprido", "Vença uma partida usando um Pacto."),
+            new AchievementDefinition("divine_hand", "Mão Divina", "Use a Intervenção Divina 10 vezes (somando todas as partidas).", 10),
+            new AchievementDefinition("civ_master", "Seitas Unidas", "Vença com cada uma das 4 civilizações.", 4),
             new AchievementDefinition("by_a_thread", "Por um Fio", "Vença com o Núcleo com 3 ou menos de vida."),
             new AchievementDefinition("untouched", "Intocável", "Vença sem o Núcleo sofrer dano algum."),
             new AchievementDefinition("ashes_glory", "Cinzas e Glória", "Vença na dificuldade Difícil."),

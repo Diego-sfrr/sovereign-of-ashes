@@ -78,11 +78,30 @@ namespace SovereignOfAshes.Achievements
                 case "horde_reaper": value = Get(AchievementCatalog.CounterKills); break;
                 case "devout": value = Get(AchievementCatalog.CounterFaithSpent); break;
                 case "veteran": value = Get(AchievementCatalog.CounterGames); break;
+                case "divine_hand": value = Get(AchievementCatalog.CounterInterventions); break;
+                case "civ_master": value = CivilizationsWon(); break;
                 case "grand_alchemist": value = CraftedElementCount; break;
                 default: value = 0; break;
             }
 
             return Math.Max(0, Math.Min(definition.Goal, value));
+        }
+
+        /// <summary>Com quantas civilizações diferentes o jogador já venceu.</summary>
+        /// <returns>Quantidade.</returns>
+        public int CivilizationsWon()
+        {
+            int won = 0;
+
+            foreach (Session.CivilizationDefinition civilization in Session.CivilizationCatalog.All)
+            {
+                if (Get(AchievementCatalog.CounterCivWinPrefix + civilization.Id) > 0)
+                {
+                    won++;
+                }
+            }
+
+            return won;
         }
 
         /// <summary>

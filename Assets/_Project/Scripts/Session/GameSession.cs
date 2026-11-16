@@ -22,6 +22,7 @@ namespace SovereignOfAshes.Session
     public sealed class GameSession : IDisposable
     {
         private readonly List<CivilizationEntity> _civilizations = new List<CivilizationEntity>();
+        private readonly List<Action<GameSession>> _startHooks = new List<Action<GameSession>>();
         private readonly GameNarrator _narrator;
         private bool _disposed;
 
@@ -100,6 +101,9 @@ namespace SovereignOfAshes.Session
         /// <summary>Oferendas Divinas (recompensas de cartas entre as ondas).</summary>
         public RewardSystem Rewards { get; }
 
+        /// <summary>Intervenção Divina: girar ou congelar anéis gastando Fé.</summary>
+        public RingControlService RingControl { get; }
+
         /// <summary>Crônica da partida.</summary>
         public GameLog Log { get; }
 
@@ -161,6 +165,7 @@ namespace SovereignOfAshes.Session
             Cards = new CardResolver(services, Faith);
             Deck = new CardDeck(config.StartingDeck, config.HandSize, deckRandom);
 
+            RingControl = new RingControlService(Board, Faith, () => Player != null && Player.CanAct);
             TectonicPlanner = config.TectonicPlanner;
             InvasionPlanner = config.InvasionPlanner;
             TurnsToSurvive = config.TurnsToSurvive;
@@ -176,7 +181,7 @@ namespace SovereignOfAshes.Session
                 IncomePhase,
                 new DrawPhase(Deck),
                 new PlayerActionPhase(),
-                new TectonicShiftPhase(Board, TectonicPlanner),
+                new TectonicShiftPhase(Board, TectonicPlanner, RingControl.FilterPlanned, RingControl.ClearFrozen),
                 CivilizationPhase,
                 AdvancePhase,
                 TraitsPhase,
@@ -188,9 +193,18 @@ namespace SovereignOfAshes.Session
             Rewards = new RewardSystem(Deck, Faith, Turns, config.RewardPool, new Random(unchecked(seed * 17 + 3)),
                 config.RewardEveryNTurns, config.RewardSkipFaith);
             Player = new PlayerActionService(Turns, Deck, Cards) { ActionBlocker = () => Rewards.HasPending };
+            Turns.AwaitingPlayer += _ => RingControl.BeginTurn();
+            _startHooks.AddRange(config.StartHooks);
             Log = new GameLog();
             _narrator = new GameNarrator(this, Log);
         }
+
+        /// <summary>
+        /// Rotações que vão acontecer na fase tectônica do turno (já sem os anéis congelados). É o que a previsão mostra.
+        /// </summary>
+        /// <param name="turn">Turno.</param>
+        /// <returns>Rotações previstas.</returns>
+        public IReadOnlyList<RingRotation> PlannedShifts(int turn) => RingControl.FilterPlanned(TectonicPlanner.PlanShifts(turn));
 
         /// <summary>
         /// Começa a partida (turno 1).
@@ -199,6 +213,12 @@ namespace SovereignOfAshes.Session
         public void Start()
         {
             Log.Add("O Trono desperta sobre a Crosta Viva. Proteja o Núcleo Divino.", LogTone.Highlight, 0);
+
+            foreach (Action<GameSession> hook in _startHooks)
+            {
+                hook(this);
+            }
+
             Turns.StartGame();
         }
 

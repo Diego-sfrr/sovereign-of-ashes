@@ -89,6 +89,12 @@ namespace SovereignOfAshes.Session
         /// <summary>Cartas compradas por turno.</summary>
         public int HandSize { get; set; } = 5;
 
+        /// <summary>
+        /// Ações executadas quando a partida começa (antes do turno 1). Civilizações usam isto para suas habilidades passivas:
+        /// assinar eventos da sessão, posicionar elementos iniciais, ajustar o controle dos anéis.
+        /// </summary>
+        public List<Action<GameSession>> StartHooks { get; } = new List<Action<GameSession>>();
+
         /// <summary>Cartas que podem surgir nas Oferendas Divinas (vazio = sem oferendas).</summary>
         public List<ICardDefinition> RewardPool { get; } = new List<ICardDefinition>();
 

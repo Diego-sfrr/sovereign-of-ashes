@@ -58,6 +58,9 @@ namespace SovereignOfAshes.Session
         /// <summary>Modo da próxima partida. Não é salvo: o menu escolhe o modo pelo botão que o jogador aperta.</summary>
         public GameMode Mode { get; set; } = GameMode.Standard;
 
+        /// <summary>Civilização escolhida para a próxima partida (<c>null</c> = Filhos da Cinza). Não é salva.</summary>
+        public string CivilizationId { get; set; }
+
         /// <summary>Pacto escolhido para a próxima partida (<c>null</c> = sem pacto). Não é salvo.</summary>
         public string CovenantId { get; set; }
 
@@ -102,6 +105,7 @@ namespace SovereignOfAshes.Session
             Seed = Seed,
             Mode = Mode,
             CovenantId = CovenantId,
+            CivilizationId = CivilizationId,
             BestEndlessTurn = BestEndlessTurn
         };
 

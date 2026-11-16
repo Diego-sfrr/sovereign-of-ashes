@@ -22,6 +22,7 @@ namespace SovereignOfAshes.Presentation
             Settings,
             Achievements,
             Covenant,
+            Civilization,
             Playing,
             Paused
         }
@@ -46,7 +47,7 @@ namespace SovereignOfAshes.Presentation
 
         private GUIStyle HintStyle => _hintStyle ?? (_hintStyle = new GUIStyle(_theme.Small) { fontSize = 16, wordWrap = true });
 
-        private bool IsMenuScreen => _uiScreen == UiScreen.Menu || _uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Settings || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant;
+        private bool IsMenuScreen => _uiScreen == UiScreen.Menu || _uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Settings || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization;
 
         // ------------------------------------------------------------------ Ciclo de vida
 
@@ -82,11 +83,12 @@ namespace SovereignOfAshes.Presentation
             _showGrimoire = false;
         }
 
-        private void StartGame(GameMode mode = GameMode.Standard, string covenantId = null)
+        private void StartGame(GameMode mode = GameMode.Standard, string covenantId = null, string civilizationId = null)
         {
             GameSettings next = _settings.Clone();
             next.Mode = mode;
             next.CovenantId = covenantId;
+            next.CivilizationId = civilizationId;
             _bootstrapper.StartNewGame(next);
         }
 
@@ -133,6 +135,7 @@ namespace SovereignOfAshes.Presentation
                 case "howto": _uiScreen = UiScreen.HowToPlay; break;
                 case "achievements": _uiScreen = UiScreen.Achievements; break;
                 case "covenant": OpenCovenantChoice(GameMode.Standard); break;
+                case "civilization": OpenCivilizationChoice(GameMode.Standard); break;
                 default: _uiScreen = UiScreen.Menu; break;
             }
         }
@@ -207,6 +210,7 @@ namespace SovereignOfAshes.Presentation
                 case UiScreen.Settings: DrawSettings(width, height); break;
                 case UiScreen.Achievements: DrawAchievements(width, height); break;
                 case UiScreen.Covenant: DrawCovenantChoice(width, height); break;
+                case UiScreen.Civilization: DrawCivilizationChoice(width, height); break;
                 default: DrawMainMenu(width, height); break;
             }
         }
@@ -226,14 +230,14 @@ namespace SovereignOfAshes.Presentation
                 {
                     LeaveSettings();
                 }
-                else if (_uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant)
+                else if (_uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization)
                 {
                     _uiScreen = UiScreen.Menu;
                 }
             }
             else if (current.keyCode == KeyCode.Return && _uiScreen == UiScreen.Menu && _session == null)
             {
-                OpenCovenantChoice(GameMode.Standard);
+                OpenCivilizationChoice(GameMode.Standard);
             }
         }
 
@@ -285,14 +289,14 @@ namespace SovereignOfAshes.Presentation
 
             if (MenuButton(new Rect(cx - 360f, 628f, 350f, 70f), "JOGAR AGORA", primary: true))
             {
-                OpenCovenantChoice(GameMode.Standard);
+                OpenCivilizationChoice(GameMode.Standard);
             }
 
             string record = _settings.BestEndlessTurn > 0 ? $"INFINITO  ·  RECORDE {_settings.BestEndlessTurn}" : "MODO INFINITO (HARDCORE)";
 
             if (MenuButton(new Rect(cx + 10f, 628f, 350f, 70f), record))
             {
-                OpenCovenantChoice(GameMode.Endless);
+                OpenCivilizationChoice(GameMode.Endless);
             }
 
             string trophies = $"CONQUISTAS {_achievements.UnlockedCount}/{AchievementCatalog.All.Count}";
@@ -337,6 +341,7 @@ namespace SovereignOfAshes.Presentation
                 { "Depois do seu turno", "Os anéis giram, sua civilização combate e a Razão dela sobe, os invasores marcham um anel para dentro e novas ondas surgem. As setas no tabuleiro mostram para onde cada invasor vai." },
                 { "Invasores", "Eles entram pelo setor de mesmo número no anel seguinte (os números ficam na borda do tabuleiro). Ao chegar ao Santuário Interno, atacam o Núcleo todo turno. Cartas de ataque e a sua civilização os derrubam; cada um destruído rende Fé." },
                 { "Razão e heresia", "Se a Razão da civilização chegar ao máximo, ela vira herege e passa a atacar o Núcleo. Cartas como o Sermão a reduzem." },
+                { "Civilizações e anéis", "Antes do pacto você escolhe sua civilização: Filhos da Cinza, Forjadores do Abismo, Flagelantes do Eclipse ou Eremitas do Tempo, cada uma com vantagem e preço. Durante a partida, a Intervenção Divina (painel ao lado do tabuleiro) gasta Fé para girar um anel 1 casa ou congelá-lo (ele ignora a próxima rotação): 1 por turno." },
                 { "Oferendas e Pactos", "Antes de cada partida você escolhe um Pacto: uma regra especial com vantagem e preço. Durante a partida, a cada 3 turnos surge uma Oferenda Divina: escolha 1 de 3 cartas para o baralho (ou recuse e ganhe Fé). Cartas como Giro Divino giram um anel inteiro e reposicionam os invasores." },
                 { "Novos invasores", "O Profanador destrói o elemento do setor em que chega. O Arauto Herege e o Inquisidor (chefe do turno 10) somam Razão às civilizações a cada turno: mate-os antes que a heresia chegue." },
                 { "Modo infinito", "No botão MODO INFINITO as ondas nunca acabam: chegam hordas cada vez maiores e mais fortes, com a dificuldade Difícil fixa. Não existe vitória; o objetivo é bater o seu recorde de turnos." },
