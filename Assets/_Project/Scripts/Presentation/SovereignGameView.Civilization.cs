@@ -57,7 +57,13 @@ namespace SovereignOfAshes.Presentation
                 GUI.Label(new Rect(rect.x + 20f, rect.y + 112f, rect.width - 40f, styleHeight), style, HintStyle);
 
                 Color previous = GUI.color;
-                float y = rect.y + 112f + styleHeight + 16f;
+                float y = rect.y + 112f + styleHeight + 10f;
+
+                var quote = new GUIContent("\u201C" + Story.CivilizationQuote(civilization.Id) + "\u201D");
+                float quoteHeight = HintStyle.CalcHeight(quote, rect.width - 40f);
+                GUI.color = GuiTheme.Gold;
+                GUI.Label(new Rect(rect.x + 20f, y, rect.width - 40f, quoteHeight), quote, HintStyle);
+                y += quoteHeight + 12f;
 
                 GUI.color = Color.white;
                 GUI.Label(new Rect(rect.x + 20f, y, rect.width - 40f, 22f), "VANTAGEM", _theme.Tag);

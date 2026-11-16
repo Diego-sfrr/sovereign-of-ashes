@@ -282,6 +282,16 @@ Ordem completa do turno: Renda → **Compra** → Jogador → Rotação → Civi
 - `SovereignBootstrapper` não cria partida sozinho: `StartNewGame(settings)`, `RestartSession()`, `CloseSession()` (evento `SessionClosed`). `_skipMenu` pula o menu.
 - `SovereignGameView.Menu.cs` desenha menu principal, Como jogar, Configurações e pausa (`UiScreen`); sem sessão, a view só mostra o menu.
 
+## História
+
+- `Story` (Session, texto puro): abertura, frases das civilizações, falas dos invasores e do Inquisidor, epílogos (`VictoryEpilogue` por civilização, `DefeatEpilogue` por `DefeatCause`), crônicas e fechos de ato. `GameSession.Start` escreve a abertura; o `GameNarrator` faz cada invasor falar na primeira aparição, mostra crônicas a cada 3 turnos e os fechos de ato nos turnos 8 e 15. A view só lê `Story` (tela de civilização e fim de jogo). `StoryTests` garante que nada fica sem texto nem passa de ~260 caracteres.
+
+## Áudio
+
+- Namespace `SovereignOfAshes.Audio` (C# puro): `AudioSynth` (tons, ruído filtrado, envelopes; 22,05 kHz mono), `SoundCatalog` (receitas dos 21 efeitos) e `MusicCatalog` (loops de 32 s: frequências com ciclos inteiros e notas que dão a volta no buffer, então emendam sem estalo). Determinístico e testado (`AudioSynthTests`: sem NaN, sem estouro, sem estalo no começo/fim, loops que emendam).
+- `GameAudio` (Presentation) sintetiza tudo numa thread de fundo ao abrir, cria os `AudioClip` no thread principal (`Pump` por quadro) e toca com 10 vozes + 1 fonte de música (fade-in/out, "ducking" na pausa, intervalo mínimo por som).
+- `SovereignGameView.Audio.cs` só escuta eventos que a `GameSession` já expõe; a lógica do jogo não conhece o áudio. A captura automática de telas roda sem áudio. Volumes de música e efeitos (0 a 10) ficam em `GameSettings`.
+
 ## Civilizações jogáveis e Intervenção Divina
 
 - `CivilizationDefinition`/`CivilizationCatalog` (Session): cada seita substitui a civilização padrão na `GameSessionConfig` (números, cartas, giro da Razão) e registra habilidades passivas em `GameSessionConfig.StartHooks` (ações que a `GameSession` executa no `Start`, ouvindo eventos da sessão). O `SovereignBootstrapper` aplica a civilização (`GameSettings.CivilizationId`, não salvo) depois da dificuldade e antes do pacto.

@@ -54,6 +54,28 @@ namespace SovereignOfAshes.Session
 
         private int _seed;
         private int _bestEndlessTurn;
+        private int _musicVolume = 6;
+        private int _sfxVolume = 8;
+
+        /// <summary>Volume da música, de 0 (mudo) a 10.</summary>
+        public int MusicVolume
+        {
+            get => _musicVolume;
+            set => _musicVolume = Math.Max(0, Math.Min(10, value));
+        }
+
+        /// <summary>Volume dos efeitos sonoros, de 0 (mudo) a 10.</summary>
+        public int SfxVolume
+        {
+            get => _sfxVolume;
+            set => _sfxVolume = Math.Max(0, Math.Min(10, value));
+        }
+
+        /// <summary>Ganho da música em [0, 1].</summary>
+        public float MusicGain => _musicVolume / 10f;
+
+        /// <summary>Ganho dos efeitos em [0, 1].</summary>
+        public float SfxGain => _sfxVolume / 10f;
 
         /// <summary>Modo da próxima partida. Não é salvo: o menu escolhe o modo pelo botão que o jogador aperta.</summary>
         public GameMode Mode { get; set; } = GameMode.Standard;
@@ -106,6 +128,8 @@ namespace SovereignOfAshes.Session
             Mode = Mode,
             CovenantId = CovenantId,
             CivilizationId = CivilizationId,
+            MusicVolume = MusicVolume,
+            SfxVolume = SfxVolume,
             BestEndlessTurn = BestEndlessTurn
         };
 
@@ -121,6 +145,8 @@ namespace SovereignOfAshes.Session
             text.Append(";animation=").Append((int)Animation);
             text.Append(";seed=").Append(Seed.ToString(CultureInfo.InvariantCulture));
             text.Append(";best=").Append(BestEndlessTurn.ToString(CultureInfo.InvariantCulture));
+            text.Append(";music=").Append(MusicVolume.ToString(CultureInfo.InvariantCulture));
+            text.Append(";sfx=").Append(SfxVolume.ToString(CultureInfo.InvariantCulture));
             return text.ToString();
         }
 
@@ -180,6 +206,12 @@ namespace SovereignOfAshes.Session
                         break;
                     case "best":
                         settings.BestEndlessTurn = number;
+                        break;
+                    case "music":
+                        settings.MusicVolume = number;
+                        break;
+                    case "sfx":
+                        settings.SfxVolume = number;
                         break;
                 }
             }

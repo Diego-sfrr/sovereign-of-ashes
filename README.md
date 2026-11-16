@@ -32,7 +32,11 @@ receitas de alquimia, a civilização "Filhos da Cinza" e ondas de invasores).
 ### Menu e configurações
 
 Ao abrir o jogo aparece o **menu principal** (Jogar agora, Como jogar, Configurações, Sair). Em **Configurações**, salvas automaticamente:
-**Dificuldade** (Fácil / Normal / Difícil: vida do Núcleo, Fé inicial e crescimento das invasões), **Tela cheia**, **Animações** (normal/rápidas) e **Semente** (0 = aleatória; o mesmo número repete a partida). Dificuldade e semente valem a partir da próxima partida. Não há volume porque o jogo ainda não tem áudio.
+**Dificuldade** (Fácil / Normal / Difícil: vida do Núcleo, Fé inicial e crescimento das invasões), **Tela cheia**, **Animações** (normal/rápidas) e **Semente** (0 = aleatória; o mesmo número repete a partida). Dificuldade e semente valem a partir da próxima partida. **Música** e **Efeitos** têm volume próprio de 0 a 10.
+
+**História:** o jogo tem lore próprio (ver `HISTORIA.md`): o Primeiro Soberano que partiu, o Núcleo que é âncora e prisão, a Razão como despertar. A Crônica abre com o mito, cada civilização tem sua frase, os invasores falam na primeira vez que surgem, o Inquisidor tem fala própria no turno 10 e na morte, e a tela de fim de jogo mostra um epílogo (vitória por civilização; derrota pela causa).
+
+**Áudio:** música (tema do menu e tema de batalha, em loop contínuo) e 21 efeitos sonoros (cartas, alquimia, dano no Núcleo, Fé, anéis girando, heresia, vitória/derrota...). Tudo é **sintetizado por código** ao abrir o jogo, sem arquivos de som.
 
 **Civilizações:** antes do pacto você escolhe sua seita: **Filhos da Cinza** (equilibrada), **Forjadores do Abismo** (Poder 8 e um Golem inicial), **Flagelantes do Eclipse** (cada carta de Sangue ou Medo cura o Núcleo, mas a Razão sobe 2 por turno) ou **Eremitas do Tempo** (girar anel de graça, Razão só sobe nos turnos pares).
 

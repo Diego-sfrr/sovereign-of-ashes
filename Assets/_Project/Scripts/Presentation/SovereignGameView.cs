@@ -3,6 +3,7 @@ using System.Text;
 using SovereignOfAshes.Alchemy;
 using SovereignOfAshes.Alchemy.Effects;
 using SovereignOfAshes.Board;
+using SovereignOfAshes.Audio;
 using SovereignOfAshes.Cards;
 using SovereignOfAshes.Civilization;
 using SovereignOfAshes.Core;
@@ -69,6 +70,7 @@ namespace SovereignOfAshes.Presentation
         private SovereignBootstrapper _bootstrapper;
         private GameSession _session;
         private BoardLayout _layout;
+        private bool _firstFrameLogged;
         private BoardRenderer _board;
         private ArtLibrary _art;
         private BoardSkin _skin;
@@ -133,15 +135,20 @@ namespace SovereignOfAshes.Presentation
 
         private void Start()
         {
+            float t0 = Time.realtimeSinceStartup;
             _bootstrapper = GetComponent<SovereignBootstrapper>();
             _bootstrapper.SessionCreated += Bind;
             _bootstrapper.SessionClosed += OnSessionClosed;
             _art = new ArtLibrary();
             _skin = CreateSkin(_art);
+            float t1 = Time.realtimeSinceStartup;
             SetupCamera();
             InitializeMenu();
+            InitializeAudio();
+            float t2 = Time.realtimeSinceStartup;
             Bind(_bootstrapper.Session);
             SovereignCaptureHarness.AttachIfRequested(gameObject);
+            Debug.Log($"[Inicio] Start começou em {t0:F2}s; arte e tabuleiro {t1 - t0:F2}s; câmera/menu/áudio {t2 - t1:F2}s; concluído em {Time.realtimeSinceStartup:F2}s");
         }
 
         private void OnDestroy()
@@ -153,6 +160,7 @@ namespace SovereignOfAshes.Presentation
             }
 
             Unbind();
+            _audio?.Dispose();
             _theme?.Dispose();
             _art?.Dispose();
         }
@@ -219,6 +227,7 @@ namespace SovereignOfAshes.Presentation
                 _session.ElementEffects.EffectTriggered -= OnElementEffect;
             }
 
+            UnbindAudio();
             _tracker?.Dispose();
             _tracker = null;
             _board?.Dispose();
@@ -246,6 +255,11 @@ namespace SovereignOfAshes.Presentation
                 var cameraObject = new GameObject("Main Camera (gerada)");
                 cameraObject.tag = "MainCamera";
                 _camera = cameraObject.AddComponent<Camera>();
+            }
+
+            if (_camera.GetComponent<AudioListener>() == null)
+            {
+                _camera.gameObject.AddComponent<AudioListener>(); // sem "ouvido" na cena o Unity não toca nada
             }
 
             _camera.orthographic = true;
@@ -484,6 +498,12 @@ namespace SovereignOfAshes.Presentation
 
         private void DrawGuiContent()
         {
+            if (!_firstFrameLogged && Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                _firstFrameLogged = true;
+                Debug.Log($"[Inicio] primeiro quadro da interface em {Time.realtimeSinceStartup:F2}s");
+            }
+
             if (_theme == null)
             {
                 _theme = new GuiTheme();
@@ -830,6 +850,7 @@ namespace SovereignOfAshes.Presentation
 
             if (_selectedCard >= 0)
             {
+                PlaySound(SoundId.CardSelect);
                 ShowHint(card.RequiresInvader
                     ? "Clique em um setor com invasor. Botão direito cancela."
                     : "Clique em um setor destacado. Botão direito cancela.");

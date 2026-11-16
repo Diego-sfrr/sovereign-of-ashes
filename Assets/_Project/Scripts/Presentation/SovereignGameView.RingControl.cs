@@ -88,6 +88,12 @@ namespace SovereignOfAshes.Presentation
             GUI.enabled = enabled;
             bool clicked = GUI.Button(rect, GUIContent.none, GUIStyle.none);
             GUI.enabled = true;
+
+            if (clicked)
+            {
+                PlaySound(Audio.SoundId.Click);
+            }
+
             return clicked;
         }
 

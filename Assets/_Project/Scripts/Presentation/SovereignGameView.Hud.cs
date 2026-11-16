@@ -708,24 +708,54 @@ namespace SovereignOfAshes.Presentation
                 _theme.Fill(new Rect(0f, 0f, width, height), new Color(0f, 0f, 0f, 0.78f));
             }
 
-            // Faixa de leitura atrás do texto.
-            _theme.Fill(new Rect(0f, height * 0.58f - 20f, width, 250f), new Color(0f, 0f, 0f, 0.6f));
-            _theme.Fill(new Rect(0f, height * 0.58f - 20f, width, 3f), new Color(GuiTheme.Gold.r, GuiTheme.Gold.g, GuiTheme.Gold.b, 0.8f));
-            _theme.Fill(new Rect(0f, height * 0.58f + 227f, width, 3f), new Color(GuiTheme.Gold.r, GuiTheme.Gold.g, GuiTheme.Gold.b, 0.8f));
+            // Epílogo da história: vitória por civilização; derrota pela causa.
+            string epilogue;
 
-            _theme.ShadowText(new Rect(0f, height * 0.58f, width, 90f), victory ? "VITÓRIA" : "O TRONO ESTÁ VAZIO",
+            if (victory)
+            {
+                epilogue = Story.VictoryEpilogue(_bootstrapper.LastSettings.CivilizationId ?? CivilizationCatalog.DefaultId);
+            }
+            else
+            {
+                bool heretic = false;
+
+                foreach (CivilizationEntity civilization in _session.Civilizations)
+                {
+                    heretic |= civilization.IsHeretic;
+                }
+
+                int seed = _bootstrapper.LastSettings.Seed + (result != null ? result.TurnNumber : 1);
+                epilogue = Story.DefeatEpilogue(Story.CauseOf(endless, heretic), seed);
+            }
+
+            // Faixa de leitura atrás do texto.
+            float y0 = height * 0.50f;
+            _theme.Fill(new Rect(0f, y0 - 20f, width, 400f), new Color(0f, 0f, 0f, 0.62f));
+            _theme.Fill(new Rect(0f, y0 - 20f, width, 3f), new Color(GuiTheme.Gold.r, GuiTheme.Gold.g, GuiTheme.Gold.b, 0.8f));
+            _theme.Fill(new Rect(0f, y0 + 377f, width, 3f), new Color(GuiTheme.Gold.r, GuiTheme.Gold.g, GuiTheme.Gold.b, 0.8f));
+
+            _theme.ShadowText(new Rect(0f, y0, width, 90f), victory ? "VITÓRIA" : "O TRONO ESTÁ VAZIO",
                 _theme.Banner, victory ? GuiTheme.Gold : GuiTheme.Bad);
-            _theme.ShadowText(new Rect(0f, height * 0.58f + 88f, width, 30f),
+            _theme.ShadowText(new Rect(0f, y0 + 88f, width, 30f),
                 endless && result != null
                     ? $"Você resistiu a {result.TurnNumber} turnos  ·  recorde: {_settings.BestEndlessTurn}{(_newRecord ? "  (NOVO!)" : string.Empty)}"
                     : result != null ? $"{result.Reason} (turno {result.TurnNumber})" : string.Empty, _theme.Centered, GuiTheme.Text);
 
-            if (MenuButton(new Rect(width * 0.5f - 320f, height * 0.58f + 138f, 310f, 72f), "JOGAR NOVAMENTE", primary: true))
+            if (epilogue.Length > 0)
+            {
+                GUIStyle epilogueStyle = EpilogueStyle;
+                float textWidth = Mathf.Min(width - 120f, 1180f);
+                var content = new GUIContent(epilogue);
+                float textHeight = epilogueStyle.CalcHeight(content, textWidth);
+                GUI.Label(new Rect((width - textWidth) * 0.5f, y0 + 128f, textWidth, textHeight), content, epilogueStyle);
+            }
+
+            if (MenuButton(new Rect(width * 0.5f - 320f, y0 + 290f, 310f, 72f), "JOGAR NOVAMENTE", primary: true))
             {
                 _bootstrapper.RestartSession();
             }
 
-            if (MenuButton(new Rect(width * 0.5f + 10f, height * 0.58f + 138f, 310f, 72f), "MENU PRINCIPAL"))
+            if (MenuButton(new Rect(width * 0.5f + 10f, y0 + 290f, 310f, 72f), "MENU PRINCIPAL"))
             {
                 _bootstrapper.CloseSession();
             }

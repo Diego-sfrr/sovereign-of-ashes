@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using SovereignOfAshes.Achievements;
+using SovereignOfAshes.Audio;
 using SovereignOfAshes.Presentation.Art;
 using SovereignOfAshes.Session;
 using SovereignOfAshes.Turns;
@@ -42,6 +43,15 @@ namespace SovereignOfAshes.Presentation
 
         private GUIStyle _bodyStyle;
         private GUIStyle _hintStyle;
+        private GUIStyle _epilogueStyle;
+
+        private GUIStyle EpilogueStyle => _epilogueStyle ?? (_epilogueStyle = new GUIStyle(_theme.Label)
+        {
+            fontSize = 22,
+            alignment = TextAnchor.UpperCenter,
+            wordWrap = true,
+            fontStyle = FontStyle.Italic
+        });
 
         private GUIStyle BodyStyle => _bodyStyle ?? (_bodyStyle = new GUIStyle(_theme.Label) { fontSize = 19, wordWrap = true });
 
@@ -73,6 +83,7 @@ namespace SovereignOfAshes.Presentation
                 _recordRegistered = false;
                 _newRecord = false;
                 StartTracking();
+                BindAudio();
             }
         }
 
@@ -162,7 +173,14 @@ namespace SovereignOfAshes.Presentation
                 : (hover ? new Color(0.32f, 0.21f, 0.10f) : new Color(0.16f, 0.11f, 0.08f));
             _theme.Frame(rect, border, fill, primary ? 4f : 3f);
             _theme.ShadowText(rect, label, _theme.ButtonText, Color.white);
-            return GUI.Button(rect, GUIContent.none, GUIStyle.none);
+            bool clicked = GUI.Button(rect, GUIContent.none, GUIStyle.none);
+
+            if (clicked)
+            {
+                PlaySound(SoundId.Click);
+            }
+
+            return clicked;
         }
 
         /// <summary>Botão de opção (grupo de escolha única): o selecionado fica dourado.</summary>
@@ -174,7 +192,14 @@ namespace SovereignOfAshes.Presentation
             Color fill = selected ? new Color(0.40f, 0.27f, 0.08f) : hover ? new Color(0.24f, 0.17f, 0.09f) : new Color(0.12f, 0.09f, 0.08f);
             _theme.Frame(rect, border, fill, selected ? 4f : 3f);
             _theme.ShadowText(rect, label, _theme.SmallNumber, selected ? Color.white : GuiTheme.Text);
-            return GUI.Button(rect, GUIContent.none, GUIStyle.none) && !selected;
+            bool changed = GUI.Button(rect, GUIContent.none, GUIStyle.none) && !selected;
+
+            if (changed)
+            {
+                PlaySound(SoundId.Click);
+            }
+
+            return changed;
         }
 
         /// <summary>Botão que pede uma segunda confirmação em até 3 segundos (para ações que perdem a partida).</summary>
@@ -378,7 +403,7 @@ namespace SovereignOfAshes.Presentation
 
         private void DrawSettings(float width, float height)
         {
-            var panel = new Rect((width - 1080f) * 0.5f, 120f, 1080f, 700f);
+            var panel = new Rect((width - 1080f) * 0.5f, 60f, 1080f, 900f);
             _theme.Panel(panel);
             _theme.ShadowText(new Rect(panel.x, panel.y + 18f, panel.width, 44f), "Configurações", _theme.Heading, GuiTheme.Gold);
             _theme.Divider(panel.x + 60f, panel.y + 70f, panel.width - 120f);
@@ -443,6 +468,29 @@ namespace SovereignOfAshes.Presentation
             GUI.Label(new Rect(controlX + 345f, y - 2f, 340f, 60f), "Só a velocidade da rotação dos anéis e da marcha dos invasores.", HintStyle);
             y += 84f;
 
+            // Volumes.
+            int music = DrawVolumeRow(labelX, controlX, y, "Música", _settings.MusicVolume, out bool musicChanged);
+
+            if (musicChanged)
+            {
+                _settings.MusicVolume = music;
+                ApplyAudioSettings();
+                SaveSettings();
+            }
+
+            y += 84f;
+            int effects = DrawVolumeRow(labelX, controlX, y, "Efeitos", _settings.SfxVolume, out bool effectsChanged);
+
+            if (effectsChanged)
+            {
+                _settings.SfxVolume = effects;
+                ApplyAudioSettings();
+                SaveSettings();
+                PlaySound(SoundId.CardSelect);
+            }
+
+            y += 84f;
+
             // Semente.
             GUI.Label(new Rect(labelX, y + 10f, 260f, 30f), "Semente", _theme.Title);
             var seedBox = new Rect(controlX, y, 220f, 48f);
@@ -471,6 +519,7 @@ namespace SovereignOfAshes.Presentation
                 _settings = new GameSettings();
                 _seedText = "0";
                 ApplyDisplaySettings();
+                ApplyAudioSettings();
                 SaveSettings();
             }
 

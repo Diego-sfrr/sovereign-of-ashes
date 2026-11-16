@@ -61,6 +61,7 @@ namespace SovereignOfAshes.EditorTools
             PlayerSettings.defaultScreenHeight = 900;
             PlayerSettings.resizableWindow = true;
             PlayerSettings.runInBackground = true; // o jogo continua animando mesmo sem foco (e o modo de captura funciona)
+            ApplyFastStartupSettings();
 
             var options = new BuildPlayerOptions
             {
@@ -84,6 +85,17 @@ namespace SovereignOfAshes.EditorTools
             {
                 EditorApplication.Exit(1);
             }
+        }
+
+        /// <summary>
+        /// Ajustes que encurtam a abertura do jogo: sem tela de splash do Unity e com Direct3D 11 (a inicialização do
+        /// Direct3D 12 é bem mais lenta e este jogo 2D não usa nada que dependa dela).
+        /// </summary>
+        private static void ApplyFastStartupSettings()
+        {
+            PlayerSettings.SplashScreen.show = false;
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, new[] { UnityEngine.Rendering.GraphicsDeviceType.Direct3D11 });
         }
 
         /// <summary>

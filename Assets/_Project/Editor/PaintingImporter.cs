@@ -5,11 +5,15 @@ namespace SovereignOfAshes.EditorTools
 {
     /// <summary>
     /// Configura a importação das pinturas da interface (<c>Resources/UI</c> e <c>Resources/Portraits</c>):
-    /// sem compressão (preserva o dithering do pixel art), com mipmaps e filtro bilinear (reduzem a arte sem cintilar)
+    /// compressão de alta qualidade (BC7: um quarto do tamanho na memória e no disco, quase sem perda), com mipmaps e filtro bilinear (reduzem a arte sem cintilar)
     /// e sem redimensionar para potência de dois.
     /// </summary>
     public sealed class PaintingImporter : AssetPostprocessor
     {
+        /// <summary>Aumente quando mudar as regras de importação: força o Unity a reimportar as texturas existentes.</summary>
+        /// <returns>Versão das regras.</returns>
+        public override uint GetVersion() => 2;
+
         private void OnPreprocessTexture()
         {
             string path = assetPath.Replace('\\', '/');
@@ -31,7 +35,7 @@ namespace SovereignOfAshes.EditorTools
             importer.filterMode = FilterMode.Bilinear;
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.maxTextureSize = isUi ? 2048 : 512;
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.textureCompression = TextureImporterCompression.CompressedHQ;
             importer.npotScale = TextureImporterNPOTScale.None;
         }
     }

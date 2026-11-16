@@ -36,7 +36,11 @@ namespace SovereignOfAshes.Presentation
             _tracker?.Dispose();
             _tracker = new AchievementTracker(_session, _bootstrapper.LastSettings, _achievements,
                 () => _achievementStore.Save(_achievements.Serialize()));
-            _tracker.Unlocked += definition => _toastQueue.Enqueue(definition);
+            _tracker.Unlocked += definition =>
+            {
+                _toastQueue.Enqueue(definition);
+                PlaySound(Audio.SoundId.Achievement);
+            };
         }
 
         internal void ShowToastForCapture(string achievementId)

@@ -68,7 +68,7 @@ Primeiro Sangue, Exterminador (100 invasores), Ceifador de Hordas (500), Primeir
 - Painel esquerdo: civilizações (Poder, Fé, Razão), previsão "ao fim deste turno" (giros e invasão), lista de invasores com retratos e intenção, mandamentos.
 - Painel direito: Crônica (log narrado em português). Mão de cartas ampliável; botão ENCERRAR TURNO.
 - Pixel art por código + pinturas: fundo, retratos (cultista, colosso, civilizações), versos de carta, ilustrações das cartas, logo. Brasas, partículas, números flutuantes de dano, rastros e animações.
-- **Sem áudio** (nem música nem efeitos).
+- **Áudio sintetizado por código:** música de menu e de batalha, 21 efeitos, volumes de música/efeitos nas Configurações.
 
 ## 12. Arquitetura e qualidade
 - Lógica em C# puro e testável (Core, Board, Alchemy, Cards, Civilization, Rules, Economy, Invaders, Turns, Session, Achievements); view IMGUI só lê e chama.
@@ -76,7 +76,7 @@ Primeiro Sangue, Exterminador (100 invasores), Ceifador de Hordas (500), Primeir
 - 87 testes automáticos EditMode; modo `-sovereign-capture` joga sozinho e gera prints; README e ARQUITETURA.md.
 
 ## 13. Limitações conhecidas
-- Sem áudio; sem tutorial interativo (só uma tela de texto); sem controle por gamepad/toque; sem localização (só português).
+- Sem tutorial interativo (só uma tela de texto); sem controle por gamepad/toque; sem localização (só português).
 - Só 1 civilização, 0 mandamentos ativos, 2 tipos de invasor, 15 cartas fixas (sem recompensas de cartas, sem loja, sem mapa de run, sem relíquias).
 - Equilíbrio medido só com um jogador automático: 18% de vitória no Normal, 87% no Fácil, 14% no Difícil.
 - Painel esquerdo ainda mostra a Fé da civilização como barra azul (não cristais). Ícones de conquista reutilizam o emblema do Núcleo.

@@ -20,6 +20,7 @@ namespace SovereignOfAshes.Session
     {
         private readonly GameSession _session;
         private readonly GameLog _log;
+        private readonly System.Collections.Generic.HashSet<string> _barked = new System.Collections.Generic.HashSet<string>();
         private bool _disposed;
 
         /// <summary>
@@ -105,7 +106,29 @@ namespace SovereignOfAshes.Session
             }
         }
 
-        private void OnTurnStarted(int turn) => _log.Add($"— Turno {turn} —", LogTone.Highlight, turn);
+        private void OnTurnStarted(int turn)
+        {
+            _log.Add($"— Turno {turn} —", LogTone.Highlight, turn);
+
+            string ending = Story.ActEnding(turn - 1);
+
+            if (ending.Length > 0)
+            {
+                _log.Add(ending, LogTone.Highlight, turn);
+            }
+
+            string chronicle = Story.ChronicleForTurn(turn);
+
+            if (chronicle.Length > 0)
+            {
+                _log.Add(chronicle, LogTone.Info, turn);
+            }
+
+            if (_session.TurnsToSurvive == 0 && turn >= 30 && turn % 10 == 0)
+            {
+                _log.Add(Story.EndlessDeep, LogTone.Highlight, turn);
+            }
+        }
 
         private void OnGameOver(GameOverInfo info)
         {
@@ -198,11 +221,33 @@ namespace SovereignOfAshes.Session
         private void OnSpawnOverflow(IInvaderDefinition definition, int missing) =>
             Write($"Os Ermos estão lotados: {missing}x {definition.DisplayName} não surgiram.", LogTone.Info);
 
-        private void OnInvaderSpawned(InvaderEntity invader) =>
+        private void OnInvaderSpawned(InvaderEntity invader)
+        {
             Write($"{invader.Name} surgiu nos Ermos Externos.", LogTone.Bad);
 
-        private void OnInvaderSlain(InvaderEntity invader) =>
+            // A primeira vez que cada tipo surge, ele fala.
+            string bark = Story.InvaderBark(invader.Definition.Id);
+
+            if (bark.Length > 0 && _barked.Add(invader.Definition.Id))
+            {
+                Write($"{invader.Name}: {bark}", LogTone.Bad);
+
+                if (invader.Definition.Id == "inquisitor")
+                {
+                    Write("\"" + Story.InquisitorVerdict + "\"", LogTone.Highlight);
+                }
+            }
+        }
+
+        private void OnInvaderSlain(InvaderEntity invader)
+        {
             Write($"{invader.Name} foi destruído.", LogTone.Good);
+
+            if (invader.Definition.Id == "inquisitor")
+            {
+                Write($"{invader.Name}: \"" + Story.InquisitorDies + "\"", LogTone.Highlight);
+            }
+        }
 
         private void OnBounty(InvaderEntity invader, FaithIncomeReport report)
         {

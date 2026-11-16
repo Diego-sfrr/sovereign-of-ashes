@@ -212,7 +212,28 @@ namespace SovereignOfAshes.Session
         /// <exception cref="InvalidOperationException">Se já tiver começado.</exception>
         public void Start()
         {
-            Log.Add("O Trono desperta sobre a Crosta Viva. Proteja o Núcleo Divino.", LogTone.Highlight, 0);
+            foreach (string line in Story.Opening)
+            {
+                Log.Add(line, LogTone.Highlight, 0);
+            }
+
+            if (_civilizations.Count > 0)
+            {
+                string quote = Story.CivilizationQuote(Story.CivilizationIdOf(_civilizations[0].Name));
+
+                if (quote.Length > 0)
+                {
+                    Log.Add(_civilizations[0].Name + ": \"" + quote + "\"", LogTone.Info, 0);
+                }
+            }
+
+            if (TurnsToSurvive == 0)
+            {
+                foreach (string line in Story.EndlessEntry)
+                {
+                    Log.Add(line, LogTone.Highlight, 0);
+                }
+            }
 
             foreach (Action<GameSession> hook in _startHooks)
             {
