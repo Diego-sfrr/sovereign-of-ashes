@@ -42,6 +42,7 @@ namespace SovereignOfAshes.Presentation
         /// <summary>Fundo de barra.</summary>
         public static readonly Color BarBack = new Color(0.14f, 0.12f, 0.14f);
 
+        private readonly Texture2D _inputTexture;
         private bool _disposed;
 
         /// <summary>Textura branca 1x1 para desenhar retângulos com <see cref="GUI.color"/>.</summary>
@@ -73,6 +74,12 @@ namespace SovereignOfAshes.Presentation
 
         /// <summary>Números flutuantes (branco; a cor vem de <see cref="GUI.color"/>).</summary>
         public GUIStyle FloatText { get; }
+
+        /// <summary>Título de tela (menus): grande, em negrito e centralizado (branco; a cor vem de <see cref="GUI.color"/>).</summary>
+        public GUIStyle Heading { get; }
+
+        /// <summary>Campo de texto (semente), com fundo escuro e texto centralizado.</summary>
+        public GUIStyle TextInput { get; }
 
         /// <summary>Rótulo pequeno em negrito, alinhado à esquerda (branco; a cor vem de <see cref="GUI.color"/>).</summary>
         public GUIStyle Tag { get; }
@@ -119,6 +126,24 @@ namespace SovereignOfAshes.Presentation
             SmallNumber = MakeText(13, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             CostNumber = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             Tag = MakeText(13, Color.white, FontStyle.Bold, TextAnchor.MiddleLeft);
+            Heading = MakeText(34, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+
+            _inputTexture = new Texture2D(1, 1);
+            _inputTexture.SetPixel(0, 0, new Color(0.10f, 0.08f, 0.11f, 1f));
+            _inputTexture.Apply();
+            TextInput = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 22,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false
+            };
+            TextInput.normal.background = _inputTexture;
+            TextInput.hover.background = _inputTexture;
+            TextInput.focused.background = _inputTexture;
+            TextInput.normal.textColor = Text;
+            TextInput.hover.textColor = Text;
+            TextInput.focused.textColor = Color.white;
             CardNameLarge = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             CardBodyLarge = MakeText(17, Text, FontStyle.Normal, TextAnchor.UpperCenter);
             CardTypeLarge = MakeText(15, Gold, FontStyle.Italic, TextAnchor.MiddleCenter);
@@ -301,6 +326,11 @@ namespace SovereignOfAshes.Presentation
             if (White != null)
             {
                 UnityEngine.Object.Destroy(White);
+            }
+
+            if (_inputTexture != null)
+            {
+                UnityEngine.Object.Destroy(_inputTexture);
             }
 
             _disposed = true;

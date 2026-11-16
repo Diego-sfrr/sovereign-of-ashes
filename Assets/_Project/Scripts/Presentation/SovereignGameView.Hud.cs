@@ -159,7 +159,7 @@ namespace SovereignOfAshes.Presentation
             return y + 14f;
         }
 
-        private void DrawPortrait(Rect rect, Texture2D painting, Texture2D fallbackSprite, Color border)
+        private void DrawPortrait(Rect rect, Texture2D painting, Texture2D fallbackSprite, Color border, Color? tint = null)
         {
             _theme.Frame(rect, border, new Color(0.05f, 0.04f, 0.06f), 2f);
             var inner = new Rect(rect.x + 2f, rect.y + 2f, rect.width - 4f, rect.height - 4f);
@@ -171,7 +171,7 @@ namespace SovereignOfAshes.Presentation
             else if (fallbackSprite != null)
             {
                 _theme.Image(new Rect(inner.x + inner.width * 0.1f, inner.y + inner.height * 0.1f, inner.width * 0.8f, inner.height * 0.8f),
-                    fallbackSprite, Color.white);
+                    fallbackSprite, tint ?? Color.white);
             }
         }
 
@@ -286,7 +286,7 @@ namespace SovereignOfAshes.Presentation
         private float DrawInvaderRow(InvaderEntity invader, float x, float y, float w)
         {
             DrawPortrait(new Rect(x, y, 48f, 48f), _art.Painting(ArtCatalog.InvaderPortraitPath(invader.Definition.Id)),
-                _art.Invader(invader.Definition), GuiTheme.Bad);
+                _art.Invader(invader.Definition), GuiTheme.Bad, ArtCatalog.InvaderTint(invader.Definition.Id));
 
             float tx = x + 58f;
             float tw = w - 58f;
@@ -298,6 +298,12 @@ namespace SovereignOfAshes.Presentation
             GUI.Label(new Rect(tx + barWidth + 6f, y + 15f, tw - barWidth - 6f, 18f), $"{invader.CurrentHealth}/{invader.MaxHealth}", _theme.Small);
 
             string intent = DescribeIntent(invader);
+            string traits = invader.Definition.DescribeTraits();
+
+            if (traits.Length > 0)
+            {
+                intent += (intent.Length > 0 ? " " : string.Empty) + $"<color={GuiTheme.Hex(GuiTheme.Gold)}>· {traits}</color>";
+            }
 
             if (intent.Length > 0)
             {
@@ -450,7 +456,7 @@ namespace SovereignOfAshes.Presentation
             _theme.ShadowText(new Rect(66f, 12f, 280f, 40f), "SOVEREIGN OF ASHES", _theme.Number, GuiTheme.Gold);
 
             TurnSystem turns = _session.Turns;
-            string goal = _session.TurnsToSurvive > 0 ? $" / {_session.TurnsToSurvive}" : string.Empty;
+            string goal = _session.TurnsToSurvive > 0 ? $" / {_session.TurnsToSurvive}" : " / ∞";
             _theme.ShadowText(new Rect(380f, 6f, 200f, 30f), $"TURNO {turns.TurnNumber}{goal}", _theme.Number, Color.white);
 
             string state;
@@ -667,9 +673,28 @@ namespace SovereignOfAshes.Presentation
 
         // ------------------------------------------------------------------ Fim de jogo
 
+        private void RegisterEndlessRecord(GameOverInfo result, bool endless)
+        {
+            if (!endless || result == null || _recordRegistered)
+            {
+                return;
+            }
+
+            _recordRegistered = true;
+            _newRecord = result.TurnNumber > _settings.BestEndlessTurn;
+
+            if (_newRecord)
+            {
+                _settings.BestEndlessTurn = result.TurnNumber;
+                SaveSettings();
+            }
+        }
+
         private void DrawGameOver(float width, float height)
         {
             GameOverInfo result = _session.Turns.Result;
+            bool endless = _session.TurnsToSurvive == 0;
+            RegisterEndlessRecord(result, endless);
             bool victory = _gameOverPreview ?? (result != null && result.Outcome == GameOutcome.Victory);
             Texture2D painting = _art.Painting(victory ? ArtCatalog.VictoryPath : ArtCatalog.DefeatPath);
 
@@ -691,17 +716,18 @@ namespace SovereignOfAshes.Presentation
             _theme.ShadowText(new Rect(0f, height * 0.58f, width, 90f), victory ? "VITÓRIA" : "O TRONO ESTÁ VAZIO",
                 _theme.Banner, victory ? GuiTheme.Gold : GuiTheme.Bad);
             _theme.ShadowText(new Rect(0f, height * 0.58f + 88f, width, 30f),
-                result != null ? $"{result.Reason} (turno {result.TurnNumber})" : string.Empty, _theme.Centered, GuiTheme.Text);
+                endless && result != null
+                    ? $"Você resistiu a {result.TurnNumber} turnos  ·  recorde: {_settings.BestEndlessTurn}{(_newRecord ? "  (NOVO!)" : string.Empty)}"
+                    : result != null ? $"{result.Reason} (turno {result.TurnNumber})" : string.Empty, _theme.Centered, GuiTheme.Text);
 
-            var button = new Rect(width * 0.5f - 150f, height * 0.58f + 138f, 300f, 72f);
-            Vector2 mouse = Event.current != null ? Event.current.mousePosition : Vector2.zero;
-            bool hover = button.Contains(mouse);
-            _theme.Frame(button, hover ? GuiTheme.Gold : GuiTheme.Bronze, hover ? new Color(0.55f, 0.16f, 0.10f) : new Color(0.40f, 0.11f, 0.08f), 4f);
-            _theme.ShadowText(button, "JOGAR NOVAMENTE", _theme.ButtonText, Color.white);
-
-            if (GUI.Button(button, GUIContent.none, GUIStyle.none))
+            if (MenuButton(new Rect(width * 0.5f - 320f, height * 0.58f + 138f, 310f, 72f), "JOGAR NOVAMENTE", primary: true))
             {
                 _bootstrapper.RestartSession();
+            }
+
+            if (MenuButton(new Rect(width * 0.5f + 10f, height * 0.58f + 138f, 310f, 72f), "MENU PRINCIPAL"))
+            {
+                _bootstrapper.CloseSession();
             }
         }
     }

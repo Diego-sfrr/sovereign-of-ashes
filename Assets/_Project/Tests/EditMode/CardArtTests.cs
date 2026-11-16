@@ -26,5 +26,24 @@ namespace SovereignOfAshes.Tests
                 Assert.IsNotNull(texture, $"Falta a ilustração de '{card.Id}' em Resources/CardArt.");
             }
         }
+
+        [Test]
+        public void EveryRewardCard_HasAnIllustration()
+        {
+            foreach (ICardDefinition card in DefaultContent.CreateRewardPool())
+            {
+                var texture = Resources.Load<Texture2D>(ArtCatalog.CardIllustrationPath(card.Id));
+                Assert.IsNotNull(texture, $"Falta a ilustração de '{card.Id}' em Resources/CardArt.");
+            }
+        }
+
+        [TestCase("profaner")]
+        [TestCase("heretic_herald")]
+        [TestCase("inquisitor")]
+        public void NewInvaders_HaveAPaintedPortrait(string invaderId)
+        {
+            var texture = Resources.Load<Texture2D>(ArtCatalog.InvaderPortraitPath(invaderId));
+            Assert.IsNotNull(texture, $"Falta o retrato de '{invaderId}' em Resources/Portraits.");
+        }
     }
 }

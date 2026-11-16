@@ -41,20 +41,27 @@ namespace SovereignOfAshes.Presentation
         [Tooltip("Copia a crônica da partida para o Console do Unity.")]
         [SerializeField] private bool _mirrorLogToConsole = true;
 
+        [Tooltip("Pula o menu principal e começa a partida assim que o jogo abre (útil para testes).")]
+        [SerializeField] private bool _skipMenu;
+
         /// <summary>Disparado sempre que uma nova partida é criada (inclusive ao reiniciar).</summary>
         public event Action<GameSession> SessionCreated;
 
-        /// <summary>Partida atual.</summary>
+        /// <summary>Disparado quando a partida é encerrada para voltar ao menu.</summary>
+        public event Action SessionClosed;
+
+        /// <summary>Partida atual (<c>null</c> enquanto o jogador está no menu).</summary>
         public GameSession Session { get; private set; }
 
-        private void Awake()
-        {
-            CreateSession();
-        }
+        /// <summary>Preferências usadas na última partida iniciada (o "Jogar novamente" repete estas).</summary>
+        public GameSettings LastSettings { get; private set; } = new GameSettings();
 
         private void Start()
         {
-            Session.Start();
+            if (_skipMenu)
+            {
+                StartNewGame(new GameSettings());
+            }
         }
 
         private void OnDestroy()
@@ -63,13 +70,37 @@ namespace SovereignOfAshes.Presentation
         }
 
         /// <summary>
-        /// Descarta a partida atual e começa outra do zero.
+        /// Descarta a partida atual (se houver) e começa outra do zero com as preferências dadas.
         /// </summary>
-        public void RestartSession()
+        /// <param name="settings">Dificuldade e semente da partida (nulo = padrão).</param>
+        public void StartNewGame(GameSettings settings)
         {
+            LastSettings = settings != null ? settings.Clone() : new GameSettings();
             DisposeSession();
             CreateSession();
             Session.Start();
+        }
+
+        /// <summary>
+        /// Descarta a partida atual e começa outra do zero, com as mesmas preferências.
+        /// </summary>
+        public void RestartSession()
+        {
+            StartNewGame(LastSettings);
+        }
+
+        /// <summary>
+        /// Encerra a partida atual e avisa a interface para voltar ao menu.
+        /// </summary>
+        public void CloseSession()
+        {
+            if (Session == null)
+            {
+                return;
+            }
+
+            DisposeSession();
+            SessionClosed?.Invoke();
         }
 
         /// <summary>
@@ -114,7 +145,7 @@ namespace SovereignOfAshes.Presentation
             config.SectorsPerRing = _sectorsPerRing;
             config.CoreMaxHealth = _coreMaxHealth;
             config.HandSize = _handSize;
-            config.Seed = _seed;
+            config.Seed = LastSettings.Seed != 0 ? LastSettings.Seed : _seed;
 
             if (_recipeBook != null)
             {
@@ -174,6 +205,27 @@ namespace SovereignOfAshes.Presentation
                 if (config.Seed == 0)
                 {
                     config.Seed = _invasionProfile.SpawnSeed;
+                }
+            }
+
+            // A dificuldade escolhida no menu vale sobre o conteúdo padrão; o que o designer configurou nos assets prevalece.
+            bool endless = LastSettings.Mode == GameMode.Endless;
+
+            // No modo infinito a dificuldade é sempre a mais dura (hardcore); o designer ainda manda nos assets.
+            DifficultyPresets.Apply(config, endless ? Difficulty.Hard : LastSettings.Difficulty,
+                replaceFaith: _faithEconomy == null, replaceInvasion: _invasionProfile == null && !endless);
+
+            // O Pacto escolhido no menu vem depois da dificuldade (a vida do Núcleo, por exemplo, já foi escalada).
+            Covenant covenant = CovenantCatalog.Find(LastSettings.CovenantId);
+            covenant?.Apply(config);
+
+            if (endless)
+            {
+                config.TurnsToSurvive = 0;
+
+                if (_invasionProfile == null)
+                {
+                    config.InvasionPlanner = new EndlessInvasionPlanner();
                 }
             }
 

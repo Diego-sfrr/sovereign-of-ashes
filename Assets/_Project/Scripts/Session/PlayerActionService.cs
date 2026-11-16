@@ -19,7 +19,13 @@ namespace SovereignOfAshes.Session
         public event Action<ICardDefinition, TectonicSector, CardPlayOutcome> CardAttempted;
 
         /// <summary>Indica se o jogador pode agir agora.</summary>
-        public bool CanAct => _turns.IsPlayerTurn;
+        public bool CanAct => _turns.IsPlayerTurn && (ActionBlocker == null || !ActionBlocker());
+
+        /// <summary>
+        /// Impede jogar cartas enquanto devolver <c>true</c> (a Oferenda Divina pendente usa isto).
+        /// Encerrar o turno continua permitido: se houver oferenda, o chamador decide o que fazer com ela.
+        /// </summary>
+        public Func<bool> ActionBlocker { get; set; }
 
         /// <summary>
         /// Cria o serviço.
@@ -76,7 +82,7 @@ namespace SovereignOfAshes.Session
         /// <returns><c>false</c> se não era a vez do jogador.</returns>
         public bool EndTurn()
         {
-            if (!CanAct)
+            if (!_turns.IsPlayerTurn)
             {
                 return false;
             }

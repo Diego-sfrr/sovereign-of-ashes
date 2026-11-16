@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using SovereignOfAshes.Alchemy;
 using SovereignOfAshes.Board;
 using SovereignOfAshes.Civilization;
+using SovereignOfAshes.Economy;
 using SovereignOfAshes.Invaders;
 using SovereignOfAshes.Rules.Combat;
 
@@ -45,6 +46,9 @@ namespace SovereignOfAshes.Cards
         /// <summary>Civilizações da partida.</summary>
         public IReadOnlyCollection<CivilizationEntity> Civilizations { get; }
 
+        /// <summary>Reserva de Fé do jogador (opcional: só alguns efeitos, como o Dízimo de Sangue, a usam).</summary>
+        public FaithPool Faith { get; }
+
         /// <summary>
         /// Cria o conjunto de serviços.
         /// </summary>
@@ -54,15 +58,18 @@ namespace SovereignOfAshes.Cards
         /// <param name="combat">Combate.</param>
         /// <param name="divineCore">Núcleo Divino.</param>
         /// <param name="civilizations">Civilizações (a coleção é lida a cada uso, então pode crescer).</param>
-        /// <exception cref="ArgumentNullException">Se algum argumento for nulo.</exception>
+        /// <param name="faith">Reserva de Fé do jogador (opcional).</param>
+        /// <exception cref="ArgumentNullException">Se algum argumento obrigatório for nulo.</exception>
         public CardPlayServices(
             TectonicBoard board,
             AlchemySystem alchemy,
             InvaderRoster invaders,
             CombatResolver combat,
             ICombatant divineCore,
-            IReadOnlyCollection<CivilizationEntity> civilizations)
+            IReadOnlyCollection<CivilizationEntity> civilizations,
+            FaithPool faith = null)
         {
+            Faith = faith;
             Board = board ?? throw new ArgumentNullException(nameof(board));
             Alchemy = alchemy ?? throw new ArgumentNullException(nameof(alchemy));
             Invaders = invaders ?? throw new ArgumentNullException(nameof(invaders));
@@ -100,6 +107,9 @@ namespace SovereignOfAshes.Cards
 
         /// <summary>Atalho para o combate.</summary>
         public CombatResolver Combat => Services.Combat;
+
+        /// <summary>Atalho para a reserva de Fé (pode ser nula).</summary>
+        public FaithPool Faith => Services.Faith;
 
         /// <summary>
         /// Cria o contexto.

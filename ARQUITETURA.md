@@ -274,6 +274,27 @@ Proteções: chamar `EndPlayerTurn` fora da vez do jogador ou de dentro de uma f
 
 Ordem completa do turno: Renda → **Compra** → Jogador → Rotação → Civilizações → Marcha → **Efeitos Alquímicos** → Surgimento → Julgamento.
 
+## Menus e preferências
+
+- `GameSettings` (Session, C# puro) guarda dificuldade, tela cheia, velocidade das animações e semente, com `Serialize`/`Parse` tolerantes a texto inválido; `ISettingsStore` abstrai onde ficam (`PlayerPrefsSettingsStore` no jogo, `InMemorySettingsStore` nos testes).
+- `DifficultyPresets.Apply` ajusta a `GameSessionConfig` (vida do Núcleo, Fé, crescimento das ondas) sem tocar nas regras; valores de ScriptableObjects atribuídos no Inspector prevalecem.
+- Modo infinito: `GameMode.Endless` (não salvo; vem do botão do menu) usa `TurnsToSurvive = 0` (sem vitória) e o `EndlessInvasionPlanner` (Invaders), determinístico e escalando por turno/tier; o limite natural é o anel externo lotado. O recorde (`BestEndlessTurn`) é salvo junto das preferências.
+- `SovereignBootstrapper` não cria partida sozinho: `StartNewGame(settings)`, `RestartSession()`, `CloseSession()` (evento `SessionClosed`). `_skipMenu` pula o menu.
+- `SovereignGameView.Menu.cs` desenha menu principal, Como jogar, Configurações e pausa (`UiScreen`); sem sessão, a view só mostra o menu.
+
+## Oferendas, Pactos e habilidades de invasores
+
+- `RewardSystem` (Session): a cada `RewardEveryNTurns` turnos, ao começar a vez do jogador, cria uma `RewardOffer` com 3 cartas distintas do `RewardPool` (sorteio determinístico pela semente). `Choose(i)` põe a carta num ponto aleatório do monte de compra (`CardDeck.AddCard`); `Skip()` dá Fé. Enquanto há oferenda pendente `PlayerActionService.ActionBlocker` impede jogar cartas; encerrar o turno sem decidir conta como recusar.
+- Cartas novas usam efeitos próprios (`RotateRingEffect`, `PushInvaderOutwardEffect`, `FaithTitheEffect`) além dos existentes; `CardPlayServices` ganhou `Faith` (opcional).
+- `Covenant`/`CovenantCatalog` (Session): cada Pacto só altera a `GameSessionConfig` (baralho, números iniciais, Mandamentos, planejador tectônico). O `SovereignBootstrapper` aplica o pacto escolhido (`GameSettings.CovenantId`, não salvo) depois da dificuldade.
+- `IInvaderTraits` (Invaders) é opcional: `CorruptsElements` e `RationalityPerTurn`. A `InvaderTraitsPhase` roda logo após a marcha e age só sobre invasores vivos. Definições sem a interface se comportam como antes.
+
+## Conquistas
+
+- Namespace `SovereignOfAshes.Achievements` (C# puro): `AchievementCatalog` (lista fixa, ids estáveis), `AchievementProgress` (desbloqueadas, elementos criados e contadores acumulados; texto tolerante a lixo) e `AchievementTracker`.
+- O tracker só **escuta** eventos da `GameSession` (invasor destruído, reação alquímica, Fé gasta, heresia, dano no Núcleo, turnos, fim de jogo) e não toca nas regras. Uma instância por partida, descartada no `Unbind` da view.
+- Persistência por `ISettingsStore` (`PlayerPrefsSettingsStore` com chave própria; em memória no modo de captura). A view (`SovereignGameView.Achievements.cs`) só desenha a lista e o aviso. Para criar uma conquista nova: adicionar no catálogo e conceder no tracker.
+
 ## Alquimia com efeitos de jogo
 
 Fundir elementos não só troca o desenho: cada elemento criado tem **efeitos** (`ElementEffect`, Strategy), executados pelo `ElementEffectSystem` (POCO).

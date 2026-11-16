@@ -40,6 +40,7 @@ namespace SovereignOfAshes.Session
 
             config.Civilizations.Add(CreateCivilization());
             config.StartingDeck.AddRange(CreateStarterDeck());
+            config.RewardPool.AddRange(CreateRewardPool());
             return config;
         }
 
@@ -64,18 +65,26 @@ namespace SovereignOfAshes.Session
             });
 
         /// <summary>
-        /// Ondas padrão: Cultistas desde o turno 1 (crescendo) e Colossos a partir do turno 6.
+        /// Ondas padrão: Cultistas desde o turno 1 (crescendo), Colossos a partir do 5, Profanadores a partir do 6,
+        /// Arautos Heréticos a partir do 9 e um Inquisidor (chefe) no turno 10.
         /// </summary>
+        /// <param name="cultistGrowthPerRepeat">Cultistas a mais a cada repetição da onda (a dificuldade usa 1, 2 ou 3).</param>
         /// <returns>Planejador de invasão.</returns>
-        public static IInvasionPlanner CreateInvasionPlanner()
+        public static IInvasionPlanner CreateInvasionPlanner(int cultistGrowthPerRepeat = 2)
         {
             var cultist = new SimpleInvaderDefinition("ash_cultist", "Cultista Cinzento", maxHealth: 5, attack: 2, faithBounty: 1);
             var colossus = new SimpleInvaderDefinition("void_colossus", "Colosso do Vazio", maxHealth: 12, attack: 4, faithBounty: 3);
+            var profaner = new SimpleInvaderDefinition("profaner", "Profanador", maxHealth: 4, attack: 1, faithBounty: 2, corruptsElements: true);
+            var herald = new SimpleInvaderDefinition("heretic_herald", "Arauto Herege", maxHealth: 6, attack: 0, faithBounty: 2, rationalityPerTurn: 1);
+            var inquisitor = new SimpleInvaderDefinition("inquisitor", "Inquisidor Cinzento", maxHealth: 20, attack: 4, faithBounty: 5, rationalityPerTurn: 1);
 
             return new WaveInvasionPlanner(new[]
             {
-                new InvasionWave(cultist, firstTurn: 1, baseCount: 1, everyNTurns: 3, countGrowthPerRepeat: 2),
-                new InvasionWave(colossus, firstTurn: 5, baseCount: 1, everyNTurns: 3, countGrowthPerRepeat: 0)
+                new InvasionWave(cultist, firstTurn: 1, baseCount: 1, everyNTurns: 3, countGrowthPerRepeat: cultistGrowthPerRepeat),
+                new InvasionWave(colossus, firstTurn: 5, baseCount: 1, everyNTurns: 3, countGrowthPerRepeat: 0),
+                new InvasionWave(profaner, firstTurn: 6, baseCount: 1, everyNTurns: 4, countGrowthPerRepeat: 0),
+                new InvasionWave(herald, firstTurn: 9, baseCount: 1, everyNTurns: 6, countGrowthPerRepeat: 0),
+                new InvasionWave(inquisitor, firstTurn: 10, baseCount: 1, everyNTurns: 10, countGrowthPerRepeat: 0)
             });
         }
 
@@ -177,6 +186,44 @@ namespace SovereignOfAshes.Session
                 miracle,
                 recruit,
                 infuseIron, infuseFire, infuseFlesh, infuseFaith, infuseBlood, infuseFear, infuseTime
+            };
+        }
+
+        /// <summary>
+        /// Cartas que podem surgir nas Oferendas Divinas. Misturam dano que já deixa um conceito no setor (mais
+        /// alquimia sem "mão morta"), controle dos anéis e trocas de recursos.
+        /// </summary>
+        /// <returns>As cartas do pool de recompensas.</returns>
+        public static IReadOnlyList<ICardDefinition> CreateRewardPool()
+        {
+            ITileEffect[] Strike(int damage, ConceptType concept) =>
+                new ITileEffect[] { new InvaderStrikeEffect(damage, false), new ConceptInfusionEffect(concept) };
+
+            return new ICardDefinition[]
+            {
+                new SimpleCardDefinition("iron_spear", "Lança de Ferro", "Causa 3 de dano a um invasor e infunde Ferro no setor.",
+                    1, ConceptType.Iron, TargetRings.All, false, true, Strike(3, ConceptType.Iron)),
+                new SimpleCardDefinition("holy_ember", "Brasa Sagrada", "Causa 2 de dano a um invasor e infunde Fogo no setor.",
+                    1, ConceptType.Fire, TargetRings.All, false, true, Strike(2, ConceptType.Fire)),
+                new SimpleCardDefinition("dread_howl", "Pavor", "Causa 2 de dano a um invasor e infunde Medo no setor.",
+                    1, ConceptType.Fear, TargetRings.All, false, true, Strike(2, ConceptType.Fear)),
+                new SimpleCardDefinition("blessed_blood", "Sangue Bento", "Cura 3 de vida do Núcleo e infunde Sangue no setor.",
+                    1, ConceptType.Blood, TargetRings.All, false, false,
+                    new ITileEffect[] { new HealCoreEffect(3), new ConceptInfusionEffect(ConceptType.Blood) }),
+                new SimpleCardDefinition("divine_turn", "Giro Divino", "Gira o anel do setor 1 casa no sentido horário.",
+                    1, ConceptType.Time, TargetRings.All, false, false,
+                    new ITileEffect[] { new RotateRingEffect(1, RotationDirection.Clockwise) }),
+                new SimpleCardDefinition("counter_turn", "Contragiro", "Gira o anel do setor 1 casa no sentido anti-horário.",
+                    1, ConceptType.Time, TargetRings.All, false, false,
+                    new ITileEffect[] { new RotateRingEffect(1, RotationDirection.CounterClockwise) }),
+                new SimpleCardDefinition("exile", "Exílio", "Empurra o invasor do setor um anel para fora.",
+                    2, ConceptType.Fear, TargetRings.All, false, true, new ITileEffect[] { new PushInvaderOutwardEffect() }),
+                new SimpleCardDefinition("blood_tithe", "Dízimo de Sangue", "O Núcleo perde 2 de vida (nunca morre por isto) e você ganha 3 de Fé.",
+                    0, ConceptType.Blood, TargetRings.None, false, false, new ITileEffect[] { new FaithTitheEffect(2, 3) }),
+                new SimpleCardDefinition("penance", "Penitência", "Todas as civilizações: -5 de Racionalidade.",
+                    2, ConceptType.Faith, TargetRings.None, false, false, new ITileEffect[] { new CivilizationInfluenceEffect(-5, 0, 0) }),
+                new SimpleCardDefinition("iron_oath", "Juramento de Ferro", "Todas as civilizações: +3 de Poder Militar.",
+                    2, ConceptType.Iron, TargetRings.None, false, false, new ITileEffect[] { new CivilizationInfluenceEffect(0, 0, 3) })
             };
         }
 

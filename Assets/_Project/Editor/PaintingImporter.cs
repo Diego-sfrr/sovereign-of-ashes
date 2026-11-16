@@ -24,7 +24,9 @@ namespace SovereignOfAshes.EditorTools
             var importer = (TextureImporter)assetImporter;
             importer.textureType = TextureImporterType.Default;
             importer.sRGBTexture = true;
-            importer.alphaSource = TextureImporterAlphaSource.None;
+            bool hasAlpha = path.EndsWith("/Resources/UI/logo.png");
+            importer.alphaSource = hasAlpha ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None;
+            importer.alphaIsTransparency = hasAlpha;
             importer.mipmapEnabled = true;
             importer.filterMode = FilterMode.Bilinear;
             importer.wrapMode = TextureWrapMode.Clamp;

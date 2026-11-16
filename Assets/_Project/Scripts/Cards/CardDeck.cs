@@ -70,6 +70,46 @@ namespace SovereignOfAshes.Cards
         }
 
         /// <summary>
+        /// Acrescenta uma carta ao baralho (recompensa de Oferenda), em posição aleatória do monte de compra.
+        /// </summary>
+        /// <param name="card">Carta (não nula).</param>
+        /// <exception cref="ArgumentNullException">Se <paramref name="card"/> for nula.</exception>
+        public void AddCard(ICardDefinition card)
+        {
+            if (card == null)
+            {
+                throw new ArgumentNullException(nameof(card));
+            }
+
+            // Entra em posição aleatória do monte de compra: aparece em breve, sem ser sempre a próxima.
+            _drawPile.Insert(_random.Next(_drawPile.Count + 1), card);
+            Changed?.Invoke(this);
+        }
+
+        /// <summary>
+        /// Quantas cópias de uma carta existem no baralho (compra, mão e descarte).
+        /// </summary>
+        /// <param name="cardId">Id da carta.</param>
+        /// <returns>Quantidade.</returns>
+        public int CountOf(string cardId)
+        {
+            int count = 0;
+
+            foreach (List<ICardDefinition> pile in new[] { _drawPile, _hand, _discardPile })
+            {
+                foreach (ICardDefinition card in pile)
+                {
+                    if (card.Id == cardId)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
         /// Compra cartas até a mão ter <see cref="HandSize"/> cartas (ou o baralho acabar).
         /// </summary>
         /// <returns>Quantas cartas foram compradas.</returns>

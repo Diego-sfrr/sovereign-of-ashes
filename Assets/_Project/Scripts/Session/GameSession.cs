@@ -88,11 +88,17 @@ namespace SovereignOfAshes.Session
         /// <summary>Fase do surgimento (eventos para a crônica).</summary>
         public InvaderSpawnPhase SpawnPhase { get; }
 
+        /// <summary>Fase das habilidades dos invasores (Profanador, Arauto, Inquisidor).</summary>
+        public InvaderTraitsPhase TraitsPhase { get; }
+
         /// <summary>Ciclo de turnos.</summary>
         public TurnSystem Turns { get; }
 
         /// <summary>Ações do jogador.</summary>
         public PlayerActionService Player { get; }
+
+        /// <summary>Oferendas Divinas (recompensas de cartas entre as ondas).</summary>
+        public RewardSystem Rewards { get; }
 
         /// <summary>Crônica da partida.</summary>
         public GameLog Log { get; }
@@ -151,7 +157,7 @@ namespace SovereignOfAshes.Session
                 config.ElementEffects,
                 new ElementEffectServices(Board, Invaders, Combat, DivineCore, _civilizations, FaithIncome));
 
-            var services = new CardPlayServices(Board, Alchemy, Invaders, Combat, DivineCore, _civilizations);
+            var services = new CardPlayServices(Board, Alchemy, Invaders, Combat, DivineCore, _civilizations, Faith);
             Cards = new CardResolver(services, Faith);
             Deck = new CardDeck(config.StartingDeck, config.HandSize, deckRandom);
 
@@ -162,6 +168,7 @@ namespace SovereignOfAshes.Session
             IncomePhase = new FaithIncomePhase(FaithIncome, _civilizations);
             CivilizationPhase = new CivilizationPhase(_civilizations, Combat, DivineCore, Invaders, config.RationalityGrowthPerTurn);
             AdvancePhase = new InvaderAdvancePhase(Invaders, Board, Combat, DivineCore, ElementEffects);
+            TraitsPhase = new InvaderTraitsPhase(Invaders, _civilizations);
             SpawnPhase = new InvaderSpawnPhase(Invaders, Board, InvasionPlanner, spawnRandom);
 
             Turns = new TurnSystem(new ITurnPhase[]
@@ -172,12 +179,15 @@ namespace SovereignOfAshes.Session
                 new TectonicShiftPhase(Board, TectonicPlanner),
                 CivilizationPhase,
                 AdvancePhase,
+                TraitsPhase,
                 new ElementEffectsPhase(ElementEffects, Invaders),
                 SpawnPhase,
                 new GameOverCheckPhase(DivineCore, TurnsToSurvive)
             });
 
-            Player = new PlayerActionService(Turns, Deck, Cards);
+            Rewards = new RewardSystem(Deck, Faith, Turns, config.RewardPool, new Random(unchecked(seed * 17 + 3)),
+                config.RewardEveryNTurns, config.RewardSkipFaith);
+            Player = new PlayerActionService(Turns, Deck, Cards) { ActionBlocker = () => Rewards.HasPending };
             Log = new GameLog();
             _narrator = new GameNarrator(this, Log);
         }
@@ -203,6 +213,7 @@ namespace SovereignOfAshes.Session
             }
 
             _narrator.Dispose();
+            Rewards.Dispose();
             Bounty.Dispose();
             _disposed = true;
         }

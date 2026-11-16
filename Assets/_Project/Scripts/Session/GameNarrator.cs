@@ -3,6 +3,7 @@ using SovereignOfAshes.Alchemy;
 using SovereignOfAshes.Alchemy.Effects;
 using SovereignOfAshes.Board;
 using SovereignOfAshes.Cards;
+using SovereignOfAshes.Core;
 using SovereignOfAshes.Civilization;
 using SovereignOfAshes.Economy;
 using SovereignOfAshes.Invaders;
@@ -62,6 +63,8 @@ namespace SovereignOfAshes.Session
             _session.CivilizationPhase.InvaderStruck += OnInvaderStruck;
             _session.AdvancePhase.InvaderAttackedCore += OnInvaderAttackedCore;
             _session.SpawnPhase.SpawnOverflow += OnSpawnOverflow;
+            _session.TraitsPhase.ElementCorrupted += OnElementCorrupted;
+            _session.TraitsPhase.RationalityPushed += OnRationalityPushed;
             _session.Invaders.InvaderSpawned += OnInvaderSpawned;
             _session.Invaders.InvaderSlain += OnInvaderSlain;
             _session.Bounty.BountyGranted += OnBounty;
@@ -86,6 +89,8 @@ namespace SovereignOfAshes.Session
             _session.CivilizationPhase.InvaderStruck -= OnInvaderStruck;
             _session.AdvancePhase.InvaderAttackedCore -= OnInvaderAttackedCore;
             _session.SpawnPhase.SpawnOverflow -= OnSpawnOverflow;
+            _session.TraitsPhase.ElementCorrupted -= OnElementCorrupted;
+            _session.TraitsPhase.RationalityPushed -= OnRationalityPushed;
             _session.Invaders.InvaderSpawned -= OnInvaderSpawned;
             _session.Invaders.InvaderSlain -= OnInvaderSlain;
             _session.Bounty.BountyGranted -= OnBounty;
@@ -159,6 +164,12 @@ namespace SovereignOfAshes.Session
 
         private void OnInvaderAttackedCore(InvaderEntity invader, int damage) =>
             Write($"{invader.Name} atacou o Núcleo ({damage} de dano).", LogTone.Bad);
+
+        private void OnElementCorrupted(InvaderEntity invader, TectonicSector sector, ISectorContent destroyed) =>
+            Write($"{invader.Name} profanou e destruiu {destroyed?.Definition?.DisplayName ?? "um elemento"}.", LogTone.Bad);
+
+        private void OnRationalityPushed(InvaderEntity invader, int amount) =>
+            Write($"{invader.Name} semeia dúvida: +{amount} de Racionalidade nas civilizações.", LogTone.Bad);
 
         private void OnSpawnOverflow(IInvaderDefinition definition, int missing) =>
             Write($"Os Ermos estão lotados: {missing}x {definition.DisplayName} não surgiram.", LogTone.Info);

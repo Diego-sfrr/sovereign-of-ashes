@@ -135,9 +135,11 @@ namespace SovereignOfAshes.Presentation
         {
             _bootstrapper = GetComponent<SovereignBootstrapper>();
             _bootstrapper.SessionCreated += Bind;
+            _bootstrapper.SessionClosed += OnSessionClosed;
             _art = new ArtLibrary();
             _skin = CreateSkin(_art);
             SetupCamera();
+            InitializeMenu();
             Bind(_bootstrapper.Session);
             SovereignCaptureHarness.AttachIfRequested(gameObject);
         }
@@ -147,6 +149,7 @@ namespace SovereignOfAshes.Presentation
             if (_bootstrapper != null)
             {
                 _bootstrapper.SessionCreated -= Bind;
+                _bootstrapper.SessionClosed -= OnSessionClosed;
             }
 
             Unbind();
@@ -205,6 +208,7 @@ namespace SovereignOfAshes.Presentation
             _session.ElementEffects.EffectTriggered += OnElementEffect;
             CreateForecaster();
             ResetResourceAnimation();
+            OnSessionBound();
         }
 
         private void Unbind()
@@ -215,6 +219,8 @@ namespace SovereignOfAshes.Presentation
                 _session.ElementEffects.EffectTriggered -= OnElementEffect;
             }
 
+            _tracker?.Dispose();
+            _tracker = null;
             _board?.Dispose();
             _board = null;
             _session = null;
@@ -353,7 +359,7 @@ namespace SovereignOfAshes.Presentation
 
         private void AnimateRings(float deltaTime)
         {
-            float step = _rotationSpeed * deltaTime;
+            float step = _rotationSpeed * _settings.AnimationMultiplier * deltaTime;
 
             for (int i = 0; i < _visualOffsets.Length; i++)
             {
@@ -364,7 +370,7 @@ namespace SovereignOfAshes.Presentation
 
         private void AnimateInvaders(float deltaTime)
         {
-            float step = _invaderSpeed * deltaTime;
+            float step = _invaderSpeed * _settings.AnimationMultiplier * deltaTime;
             _staleIds.Clear();
             _staleIds.AddRange(_invaderVisuals.Keys);
 
@@ -468,11 +474,16 @@ namespace SovereignOfAshes.Presentation
 
         private void OnGUI()
         {
-            if (_session == null)
-            {
-                return;
-            }
+            DrawGuiContent();
 
+            if (_theme != null)
+            {
+                DrawAchievementToast(Screen.width / _guiScale);
+            }
+        }
+
+        private void DrawGuiContent()
+        {
             if (_theme == null)
             {
                 _theme = new GuiTheme();
@@ -482,6 +493,12 @@ namespace SovereignOfAshes.Presentation
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(_guiScale, _guiScale, 1f));
             float width = Screen.width / _guiScale;
             float height = ReferenceHeight;
+
+            if (_session == null || IsMenuScreen)
+            {
+                DrawMenuFlow(width, height);
+                return;
+            }
 
             HandleKeys();
             UpdateHover(width, height);
@@ -503,6 +520,12 @@ namespace SovereignOfAshes.Presentation
                 return;
             }
 
+            if (_uiScreen == UiScreen.Paused)
+            {
+                DrawPauseMenu(width, height);
+                return; // modal: nada do jogo recebe cliques enquanto pausado
+            }
+
             if (_showGrimoire)
             {
                 DrawGrimoire(width);
@@ -511,6 +534,13 @@ namespace SovereignOfAshes.Presentation
 
             DrawHand(width, height);
             DrawHint(width, height);
+
+            if (ShouldShowOffer)
+            {
+                DrawRewardOffer(width, height);
+                return; // modal: a Oferenda Divina precisa de uma decisão antes de continuar
+            }
+
             DrawSectorTooltip();
             HandleBoardClick(width, height);
         }
@@ -528,9 +558,16 @@ namespace SovereignOfAshes.Presentation
             {
                 _showGrimoire = !_showGrimoire;
             }
-            else if (current.keyCode == KeyCode.Escape && _showGrimoire)
+            else if (current.keyCode == KeyCode.Escape)
             {
-                _showGrimoire = false;
+                if (_showGrimoire)
+                {
+                    _showGrimoire = false;
+                }
+                else
+                {
+                    TogglePause();
+                }
             }
         }
 
@@ -663,7 +700,7 @@ namespace SovereignOfAshes.Presentation
 
             foreach (InvaderSpawnOrder spawn in spawns)
             {
-                _theme.Image(new Rect(x, y - 3f, 28f, 28f), _art.Invader(spawn.Definition), Color.white);
+                _theme.Image(new Rect(x, y - 3f, 28f, 28f), _art.Invader(spawn.Definition), ArtCatalog.InvaderTint(spawn.Definition.Id));
                 y = DrawWrappedLine(x + 34f, y + 2f, w - 34f,
                     $"<color={GuiTheme.Hex(GuiTheme.Bad)}>{spawn.Count}x {spawn.Definition.DisplayName}</color> invade");
                 y += 4f;
@@ -868,7 +905,7 @@ namespace SovereignOfAshes.Presentation
                 var spriteRect = new Rect(gui.x - 28f, gui.y - 38f + bob, 56f, 56f);
 
                 _theme.Fill(new Rect(gui.x - 20f, gui.y + 14f, 40f, 5f), new Color(0f, 0f, 0f, 0.45f)); // sombra
-                _theme.Image(spriteRect, _art.Invader(invader.Definition), hit ? new Color(1f, 0.45f, 0.45f) : Color.white);
+                _theme.Image(spriteRect, _art.Invader(invader.Definition), hit ? new Color(1f, 0.45f, 0.45f) : ArtCatalog.InvaderTint(invader.Definition.Id));
 
                 var bar = new Rect(gui.x - 24f, gui.y + 22f, 48f, 7f);
                 _theme.DrawBar(bar, (float)invader.CurrentHealth / invader.MaxHealth, GuiTheme.Bad);

@@ -76,7 +76,35 @@ namespace SovereignOfAshes.Presentation
         private IEnumerator Run()
         {
             yield return new WaitForSeconds(2.5f);
+
+            // Menus (a partida só começa depois, como para o jogador).
+            yield return Capture("m1-menu-principal");
+            _view.ShowScreenForCapture("settings");
+            yield return new WaitForSeconds(0.4f);
+            yield return Capture("m2-configuracoes");
+            _view.ShowScreenForCapture("howto");
+            yield return new WaitForSeconds(0.4f);
+            yield return Capture("m3-como-jogar");
+            _view.ShowScreenForCapture("covenant");
+            yield return new WaitForSeconds(0.4f);
+            yield return Capture("m7-pactos");
+            _view.ShowScreenForCapture("achievements");
+            yield return new WaitForSeconds(0.4f);
+            yield return Capture("m5-conquistas");
+            _view.ShowScreenForCapture("menu");
+            _view.StartGameForCapture(Array.IndexOf(Environment.GetCommandLineArgs(), "-sovereign-endless") >= 0);
+            yield return new WaitForSeconds(2.5f);
+
+            _view.SetPausedForCapture(true);
+            yield return new WaitForSeconds(0.4f);
+            yield return Capture("m4-pausa");
+            _view.SetPausedForCapture(false);
+            yield return new WaitForSeconds(0.3f);
+
             yield return Capture("01-inicio");
+            _view.ShowToastForCapture("victory");
+            yield return new WaitForSeconds(1.0f);
+            yield return Capture("m6-aviso-conquista");
 
             GameSession session = _view != null ? _view.Session : null;
 
@@ -112,6 +140,15 @@ namespace SovereignOfAshes.Presentation
 
             for (int turn = 0; turn < MaxTurns && session.Turns.State == TurnState.AwaitingPlayer; turn++)
             {
+                if (session.Rewards.HasPending)
+                {
+                    // A Oferenda Divina: mostra o modal e depois leva a primeira carta, como um jogador faria.
+                    yield return new WaitForSeconds(1.6f);
+                    yield return Capture($"{shot++:00}-oferenda");
+                    session.Rewards.Choose(0);
+                    yield return new WaitForSeconds(0.4f);
+                }
+
                 if (turn == 3)
                 {
                     // Só para a captura: tira vida do Núcleo direto, para mostrar corações parciais, o rastro do dano e a pulsação.

@@ -535,7 +535,8 @@ namespace SovereignOfAshes.Presentation.Art
 
         private static readonly Dictionary<string, string> Invaders = new Dictionary<string, string>
         {
-            { "ash_cultist", "cultist" }, { "void_colossus", "colossus" }
+            { "ash_cultist", "cultist" }, { "void_colossus", "colossus" },
+            { "profaner", "cultist" }, { "heretic_herald", "cultist" }, { "inquisitor", "colossus" }
         };
 
         private static readonly Dictionary<string, string> Cards = new Dictionary<string, string>
@@ -582,6 +583,22 @@ namespace SovereignOfAshes.Presentation.Art
         public static string ForInvader(string invaderId) =>
             invaderId != null && Invaders.TryGetValue(invaderId, out string sprite) ? sprite : "cultist";
 
+        /// <summary>
+        /// Cor que diferencia, no tabuleiro, invasores que reaproveitam o sprite de outro (Profanador roxo, Arauto dourado, Inquisidor rubro).
+        /// </summary>
+        /// <param name="invaderId">Id do invasor.</param>
+        /// <returns>Cor de tonalização (branco = sem alteração).</returns>
+        public static UnityEngine.Color InvaderTint(string invaderId)
+        {
+            switch (invaderId)
+            {
+                case "profaner": return new UnityEngine.Color(0.78f, 0.55f, 1f, 1f);
+                case "heretic_herald": return new UnityEngine.Color(1f, 0.86f, 0.45f, 1f);
+                case "inquisitor": return new UnityEngine.Color(1f, 0.55f, 0.5f, 1f);
+                default: return UnityEngine.Color.white;
+            }
+        }
+
         /// <summary>Pasta (dentro de <c>Resources</c>) das ilustrações pintadas das cartas, uma por id: <c>CardArt/&lt;id&gt;.png</c>.</summary>
         public const string CardIllustrationFolder = "CardArt";
 
@@ -593,6 +610,9 @@ namespace SovereignOfAshes.Presentation.Art
 
         /// <summary>Fundo pintado atrás do tabuleiro (<c>Resources/UI/backdrop</c>).</summary>
         public const string BackdropPath = "UI/backdrop";
+
+        /// <summary>Logo do jogo, com bordas translúcidas (<c>Resources/UI/logo</c>).</summary>
+        public const string LogoPath = "UI/logo";
 
         /// <summary>Tela de derrota (<c>Resources/UI/defeat</c>).</summary>
         public const string DefeatPath = "UI/defeat";

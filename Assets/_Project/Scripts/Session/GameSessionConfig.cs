@@ -89,6 +89,15 @@ namespace SovereignOfAshes.Session
         /// <summary>Cartas compradas por turno.</summary>
         public int HandSize { get; set; } = 5;
 
+        /// <summary>Cartas que podem surgir nas Oferendas Divinas (vazio = sem oferendas).</summary>
+        public List<ICardDefinition> RewardPool { get; } = new List<ICardDefinition>();
+
+        /// <summary>Intervalo, em turnos, entre as Oferendas (0 desliga).</summary>
+        public int RewardEveryNTurns { get; set; } = 3;
+
+        /// <summary>Fé ganha ao recusar uma Oferenda.</summary>
+        public int RewardSkipFaith { get; set; } = 1;
+
         /// <summary>Semente do embaralhamento e das posições de surgimento (0 = aleatória).</summary>
         public int Seed { get; set; }
 
