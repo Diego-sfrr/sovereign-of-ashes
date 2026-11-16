@@ -57,6 +57,9 @@ namespace SovereignOfAshes.Session
         private int _musicVolume = 6;
         private int _sfxVolume = 8;
 
+        /// <summary>Máscara de bits dos painéis recolhidos na partida (a interface decide o significado de cada bit). Salva.</summary>
+        public int PanelsCollapsed { get; set; }
+
         /// <summary>Volume da música, de 0 (mudo) a 10.</summary>
         public int MusicVolume
         {
@@ -130,6 +133,7 @@ namespace SovereignOfAshes.Session
             CivilizationId = CivilizationId,
             MusicVolume = MusicVolume,
             SfxVolume = SfxVolume,
+            PanelsCollapsed = PanelsCollapsed,
             BestEndlessTurn = BestEndlessTurn
         };
 
@@ -147,6 +151,7 @@ namespace SovereignOfAshes.Session
             text.Append(";best=").Append(BestEndlessTurn.ToString(CultureInfo.InvariantCulture));
             text.Append(";music=").Append(MusicVolume.ToString(CultureInfo.InvariantCulture));
             text.Append(";sfx=").Append(SfxVolume.ToString(CultureInfo.InvariantCulture));
+            text.Append(";panels=").Append(PanelsCollapsed.ToString(CultureInfo.InvariantCulture));
             return text.ToString();
         }
 
@@ -212,6 +217,9 @@ namespace SovereignOfAshes.Session
                         break;
                     case "sfx":
                         settings.SfxVolume = number;
+                        break;
+                    case "panels":
+                        settings.PanelsCollapsed = Math.Max(0, number);
                         break;
                 }
             }

@@ -161,7 +161,7 @@ namespace SovereignOfAshes.Presentation
             }
 
             float areaAspect = area.width / area.height;
-            float textureAspect = (float)texture.width / texture.height;
+            float textureAspect = Art.ArtCatalog.TrueAspect(texture);
             var uv = new Rect(0f, 0f, 1f, 1f);
 
             if (textureAspect > areaAspect)

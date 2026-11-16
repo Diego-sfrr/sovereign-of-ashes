@@ -303,7 +303,7 @@ namespace SovereignOfAshes.Presentation
                 // O logo tem bordas translúcidas: respira de leve e se mistura ao fundo.
                 float breathe = 1f + 0.012f * Mathf.Sin(Time.time * 1.6f);
                 float logoWidth = 1180f * breathe;
-                float logoHeight = logoWidth * logo.height / logo.width;
+                float logoHeight = logoWidth / ArtCatalog.TrueAspect(logo);
                 GUI.DrawTexture(new Rect(cx - logoWidth * 0.5f, -14f - (logoHeight - 660f) * 0.5f, logoWidth, logoHeight), logo, ScaleMode.StretchToFill, true);
             }
             else
@@ -354,7 +354,8 @@ namespace SovereignOfAshes.Presentation
 
         private void DrawHowToPlay(float width, float height)
         {
-            var panel = new Rect((width - 1100f) * 0.5f, 70f, 1100f, height - 140f);
+            float panelHeight = Mathf.Min(height - 100f, 840f);
+            var panel = new Rect((width - 1100f) * 0.5f, (height - panelHeight) * 0.5f, 1100f, panelHeight);
             _theme.Panel(panel);
             _theme.ShadowText(new Rect(panel.x, panel.y + 18f, panel.width, 44f), "Como jogar", _theme.Heading, GuiTheme.Gold);
             _theme.Divider(panel.x + 60f, panel.y + 70f, panel.width - 120f);

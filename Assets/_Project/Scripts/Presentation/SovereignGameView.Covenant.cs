@@ -27,22 +27,24 @@ namespace SovereignOfAshes.Presentation
         private void DrawCovenantChoice(float width, float height)
         {
             string modeName = _pendingMode == GameMode.Endless ? "Modo Infinito" : "Nova partida";
-            _theme.ShadowText(new Rect(0f, 48f, width, 56f), "ESCOLHA UM PACTO", _theme.Heading, GuiTheme.Gold);
-            _theme.Divider(width * 0.5f - 280f, 108f, 560f);
-            _theme.ShadowText(new Rect(0f, 120f, width, 30f),
+            float head = Mathf.Max(170f, (height - 360f) * 0.5f + 30f) - 150f;
+            _theme.ShadowText(new Rect(0f, head, width, 56f), "ESCOLHA UM PACTO", _theme.Heading, GuiTheme.Gold);
+            _theme.Divider(width * 0.5f - 280f, head + 60f, 560f);
+            _theme.ShadowText(new Rect(0f, head + 72f, width, 30f),
                 $"{modeName} com {CivilizationCatalog.Find(_pendingCivilization)?.Name ?? "os Filhos da Cinza"}: um pacto muda as regras desta partida. Toda vantagem tem um preço.", _theme.Centered, GuiTheme.Text);
 
             const float cardWidth = 360f;
-            const float cardHeight = 430f;
+            const float cardHeight = 360f;
             const float gap = 36f;
             int count = _covenantChoices.Count;
             float startX = (width - (count * cardWidth + (count - 1) * gap)) * 0.5f;
+            float top = Mathf.Max(170f, (height - cardHeight) * 0.5f + 30f);
             Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
 
             for (int i = 0; i < count; i++)
             {
                 Covenant covenant = _covenantChoices[i];
-                var rect = new Rect(startX + i * (cardWidth + gap), 176f, cardWidth, cardHeight);
+                var rect = new Rect(startX + i * (cardWidth + gap), top, cardWidth, cardHeight);
                 bool hover = rect.Contains(mouse);
                 _theme.Frame(rect, hover ? GuiTheme.Gold : GuiTheme.Bronze,
                     hover ? new Color(0.20f, 0.14f, 0.07f) : new Color(0.10f, 0.08f, 0.08f), hover ? 5f : 4f);
@@ -58,11 +60,12 @@ namespace SovereignOfAshes.Presentation
                 GUI.Label(new Rect(rect.x + 28f, rect.y + 130f, rect.width - 56f, boonHeight), boon, BodyStyle);
 
                 GUI.color = Color.white;
-                GUI.Label(new Rect(rect.x + 28f, rect.y + 246f, rect.width - 56f, 24f), "PREÇO", _theme.Tag);
+                float curseTop = rect.y + 130f + boonHeight + 22f;
+                GUI.Label(new Rect(rect.x + 28f, curseTop, rect.width - 56f, 24f), "PREÇO", _theme.Tag);
                 var curse = new GUIContent(covenant.Curse);
                 float curseHeight = BodyStyle.CalcHeight(curse, rect.width - 56f);
                 GUI.color = GuiTheme.Bad;
-                GUI.Label(new Rect(rect.x + 28f, rect.y + 272f, rect.width - 56f, curseHeight), curse, BodyStyle);
+                GUI.Label(new Rect(rect.x + 28f, curseTop + 26f, rect.width - 56f, curseHeight), curse, BodyStyle);
                 GUI.color = previous;
 
                 _theme.ShadowText(new Rect(rect.x, rect.yMax - 52f, rect.width, 36f), hover ? "CLIQUE PARA ESCOLHER" : string.Empty,
@@ -75,7 +78,7 @@ namespace SovereignOfAshes.Presentation
                 }
             }
 
-            float below = 176f + cardHeight + 28f;
+            float below = top + cardHeight + 28f;
 
             if (MenuButton(new Rect(width * 0.5f - 330f, below, 320f, 56f), "JOGAR SEM PACTO"))
             {

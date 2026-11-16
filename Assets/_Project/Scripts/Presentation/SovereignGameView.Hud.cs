@@ -46,7 +46,7 @@ namespace SovereignOfAshes.Presentation
             // O fundo pintado cobre a área visível (com folga para o tremor de tela), sem distorcer.
             float viewHeight = _camera.orthographicSize * 2f * 1.1f;
             float aspect = Screen.width / (float)Mathf.Max(1, Screen.height);
-            float textureAspect = _skin.Backdrop.width / (float)Mathf.Max(1, _skin.Backdrop.height);
+            float textureAspect = ArtCatalog.TrueAspect(_skin.Backdrop);
             Vector2 size = textureAspect > aspect
                 ? new Vector2(viewHeight * textureAspect, viewHeight)
                 : new Vector2(viewHeight * aspect, viewHeight * aspect / textureAspect);
@@ -175,6 +175,59 @@ namespace SovereignOfAshes.Presentation
             }
         }
 
+        // Bits dos painéis recolhíveis (GameSettings.PanelsCollapsed).
+        private const int PanelCivilizations = 1 << 0;
+        private const int PanelForecast = 1 << 1;
+        private const int PanelInvaders = 1 << 2;
+        private const int PanelCommandments = 1 << 3;
+        private const int PanelChronicle = 1 << 4;
+        private const int PanelIntervention = 1 << 5;
+
+        private GUIStyle _statusBadStyle;
+
+        private GUIStyle StatusBadStyle => _statusBadStyle ?? (_statusBadStyle = new GUIStyle(_theme.Small) { normal = { textColor = GuiTheme.Bad } });
+
+        private bool IsCollapsed(int bit) => (_settings.PanelsCollapsed & bit) != 0;
+
+        /// <summary>
+        /// Título de seção que abre e fecha ao clicar (mostra "-" quando aberta e "+" quando fechada).
+        /// Devolve se o conteúdo deve ser desenhado e já avança <paramref name="y"/> para depois do título.
+        /// </summary>
+        private bool SectionOpen(ref float y, float x, float w, string title, int bit, bool compact = false)
+        {
+            bool collapsed = IsCollapsed(bit);
+            var row = new Rect(x - 4f, y - 2f, w + 8f, 30f);
+            Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
+
+            if (row.Contains(mouse))
+            {
+                _theme.Fill(row, new Color(1f, 1f, 1f, 0.06f));
+            }
+
+            GUI.Label(new Rect(x, y, w - 30f, 26f), title, _theme.Title);
+
+            var marker = new Rect(x + w - 24f, y + 1f, 22f, 22f);
+            _theme.Frame(marker, GuiTheme.Bronze, new Color(0.12f, 0.09f, 0.08f), 2f);
+            _theme.ShadowText(marker, collapsed ? "+" : "-", _theme.SmallNumber, GuiTheme.Gold);
+
+            if (GUI.Button(row, GUIContent.none, GUIStyle.none))
+            {
+                _settings.PanelsCollapsed ^= bit;
+                SaveSettings();
+                PlaySound(Audio.SoundId.Click, 0.6f);
+            }
+
+            y += compact ? 26f : 28f;
+
+            if (!collapsed && !compact)
+            {
+                _theme.Divider(x, y, w);
+            }
+
+            y += collapsed ? 8f : (compact ? 8f : 14f);
+            return !collapsed;
+        }
+
         private void DrawLeftPanel(Rect area)
         {
             _theme.Panel(area);
@@ -182,23 +235,34 @@ namespace SovereignOfAshes.Presentation
             float w = area.width - 36f;
             float y = area.y + 14f;
 
-            y = DrawSectionTitle(x, y, w, "Civilizações");
-
-            foreach (CivilizationEntity civ in _session.Civilizations)
+            if (SectionOpen(ref y, x, w, "Civilizações", PanelCivilizations))
             {
-                y = DrawCivilization(civ, x, y, w);
+                foreach (CivilizationEntity civ in _session.Civilizations)
+                {
+                    y = DrawCivilization(civ, x, y, w);
+                }
             }
 
-            y = DrawSectionTitle(x, y, w, "Ao fim deste turno");
-            y = DrawForecast(x, y, w) + 6f;
+            if (SectionOpen(ref y, x, w, "Ao fim deste turno", PanelForecast))
+            {
+                y = DrawForecast(x, y, w) + 6f;
+            }
 
             int commandments = _session.Rules.ActiveCommandments.Count;
-            float commandmentsReserve = 28f + 14f + (commandments == 0 ? LineStep : commandments * LineStep) + 10f;
+            bool commandmentsOpen = !IsCollapsed(PanelCommandments);
+            float commandmentsReserve = 36f + (commandmentsOpen ? 14f + (commandments == 0 ? LineStep : commandments * LineStep) + 10f : 0f);
 
-            y = DrawSectionTitle(x, y, w, "Invasores");
-            y = DrawInvaderList(x, y, w, area.yMax - commandmentsReserve - 10f);
+            if (SectionOpen(ref y, x, w, "Invasores", PanelInvaders))
+            {
+                y = DrawInvaderList(x, y, w, area.yMax - commandmentsReserve - 10f);
+            }
 
-            y = DrawSectionTitle(x, y + 4f, w, "Mandamentos");
+            y += 4f;
+
+            if (!SectionOpen(ref y, x, w, "Mandamentos", PanelCommandments))
+            {
+                return;
+            }
 
             if (commandments == 0)
             {
@@ -343,12 +407,21 @@ namespace SovereignOfAshes.Presentation
 
         private void DrawRightPanel(Rect area)
         {
+            // Fechada, a Crônica vira só uma barra de título e libera espaço.
+            if (IsCollapsed(PanelChronicle))
+            {
+                area = new Rect(area.x, area.y, area.width, 52f);
+            }
+
             _theme.Panel(area);
             float x = area.x + 26f;
             float w = area.width - 44f;
             float y = area.y + 14f;
 
-            y = DrawSectionTitle(area.x + 18f, y, area.width - 36f, "Crônica");
+            if (!SectionOpen(ref y, area.x + 18f, area.width - 36f, "Crônica", PanelChronicle))
+            {
+                return;
+            }
 
             IReadOnlyList<LogEntry> entries = _session.Log.Entries;
             float bottom = area.yMax - 12f;

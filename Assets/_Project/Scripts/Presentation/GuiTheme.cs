@@ -120,7 +120,7 @@ namespace SovereignOfAshes.Presentation
             Title = MakeText(18, Gold, FontStyle.Bold, TextAnchor.UpperLeft);
             Banner = MakeText(64, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             Label = MakeText(14, Text, FontStyle.Normal, TextAnchor.UpperLeft);
-            Small = MakeText(12, TextDim, FontStyle.Normal, TextAnchor.UpperLeft);
+            Small = MakeText(13, TextDim, FontStyle.Normal, TextAnchor.UpperLeft);
             Centered = MakeText(16, Text, FontStyle.Normal, TextAnchor.MiddleCenter);
             Number = MakeText(22, Color.white, FontStyle.Bold, TextAnchor.MiddleLeft);
             SmallNumber = MakeText(13, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);

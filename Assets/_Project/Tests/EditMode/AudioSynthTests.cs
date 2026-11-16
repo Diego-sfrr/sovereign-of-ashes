@@ -118,6 +118,16 @@ namespace SovereignOfAshes.Tests
         }
 
         [Test]
+        public void Settings_CollapsedPanels_AreSaved_AndNeverNegative()
+        {
+            var settings = new GameSettings { PanelsCollapsed = 0b10110 };
+            Assert.AreEqual(0b10110, GameSettings.Parse(settings.Serialize()).PanelsCollapsed);
+            Assert.AreEqual(0, GameSettings.Parse("panels=-9").PanelsCollapsed);
+            Assert.AreEqual(0, new GameSettings().PanelsCollapsed);
+            Assert.AreEqual(0b10110, settings.Clone().PanelsCollapsed);
+        }
+
+        [Test]
         public void Settings_Volumes_RoundTrip_AndClamp()
         {
             var settings = new GameSettings { MusicVolume = 3, SfxVolume = 9 };

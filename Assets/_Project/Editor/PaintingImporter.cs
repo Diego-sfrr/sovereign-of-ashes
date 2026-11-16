@@ -12,7 +12,7 @@ namespace SovereignOfAshes.EditorTools
     {
         /// <summary>Aumente quando mudar as regras de importação: força o Unity a reimportar as texturas existentes.</summary>
         /// <returns>Versão das regras.</returns>
-        public override uint GetVersion() => 2;
+        public override uint GetVersion() => 3;
 
         private void OnPreprocessTexture()
         {
@@ -36,7 +36,7 @@ namespace SovereignOfAshes.EditorTools
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.maxTextureSize = isUi ? 2048 : 512;
             importer.textureCompression = TextureImporterCompression.CompressedHQ;
-            importer.npotScale = TextureImporterNPOTScale.None;
+            importer.npotScale = isUi ? TextureImporterNPOTScale.ToNearest : TextureImporterNPOTScale.None;
         }
     }
 }

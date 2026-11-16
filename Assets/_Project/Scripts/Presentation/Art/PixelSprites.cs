@@ -608,6 +608,35 @@ namespace SovereignOfAshes.Presentation.Art
         public static string CardIllustrationPath(string cardId) =>
             string.IsNullOrWhiteSpace(cardId) ? null : $"{CardIllustrationFolder}/{cardId.Trim()}";
 
+        /// <summary>
+        /// Proporção verdadeira de uma textura. As pinturas grandes da interface são reamostradas para potência de 2 na
+        /// importação (única forma de comprimi-las), o que muda as dimensões da textura mas não a arte; esta função devolve
+        /// a proporção original delas (pelo nome do arquivo) e, para as demais, a da própria textura.
+        /// </summary>
+        /// <param name="texture">Textura.</param>
+        /// <returns>Largura dividida pela altura.</returns>
+        public static float TrueAspect(UnityEngine.Texture texture)
+        {
+            if (texture == null || texture.height <= 0)
+            {
+                return 1f;
+            }
+
+            switch (texture.name)
+            {
+                case "backdrop":
+                case "defeat":
+                case "victory":
+                    return 1920f / 1080f;
+                case "logo":
+                    return 1600f / 893f;
+                case "cardback":
+                    return 384f / 512f;
+                default:
+                    return (float)texture.width / texture.height;
+            }
+        }
+
         /// <summary>Fundo pintado atrás do tabuleiro (<c>Resources/UI/backdrop</c>).</summary>
         public const string BackdropPath = "UI/backdrop";
 

@@ -20,14 +20,16 @@ namespace SovereignOfAshes.Presentation
         private void DrawCivilizationChoice(float width, float height)
         {
             string modeName = _pendingMode == GameMode.Endless ? "Modo Infinito" : "Nova partida";
-            _theme.ShadowText(new Rect(0f, 36f, width, 56f), "ESCOLHA SUA CIVILIZAÇÃO", _theme.Heading, GuiTheme.Gold);
-            _theme.Divider(width * 0.5f - 300f, 96f, 600f);
-            _theme.ShadowText(new Rect(0f, 108f, width, 30f),
+            const float cardHeight = 450f;
+            float top = Mathf.Max(170f, (height - cardHeight) * 0.5f + 30f);
+            float head = top - 150f;
+            _theme.ShadowText(new Rect(0f, head, width, 56f), "ESCOLHA SUA CIVILIZAÇÃO", _theme.Heading, GuiTheme.Gold);
+            _theme.Divider(width * 0.5f - 300f, head + 60f, 600f);
+            _theme.ShadowText(new Rect(0f, head + 72f, width, 30f),
                 $"{modeName}: cada seita muda como você joga. Depois você ainda escolhe um Pacto.", _theme.Centered, GuiTheme.Text);
 
             int count = CivilizationCatalog.All.Count;
             const float cardWidth = 340f;
-            const float cardHeight = 520f;
             const float gap = 22f;
             float startX = (width - (count * cardWidth + (count - 1) * gap)) * 0.5f;
             Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
@@ -35,7 +37,7 @@ namespace SovereignOfAshes.Presentation
             for (int i = 0; i < count; i++)
             {
                 CivilizationDefinition civilization = CivilizationCatalog.All[i];
-                var rect = new Rect(startX + i * (cardWidth + gap), 156f, cardWidth, cardHeight);
+                var rect = new Rect(startX + i * (cardWidth + gap), top, cardWidth, cardHeight);
                 bool hover = rect.Contains(mouse);
                 _theme.Frame(rect, hover ? GuiTheme.Gold : GuiTheme.Bronze,
                     hover ? new Color(0.20f, 0.14f, 0.07f) : new Color(0.10f, 0.08f, 0.08f), hover ? 5f : 4f);
@@ -92,7 +94,7 @@ namespace SovereignOfAshes.Presentation
                 }
             }
 
-            if (MenuButton(new Rect(width * 0.5f - 130f, 156f + cardHeight + 26f, 260f, 56f), "VOLTAR"))
+            if (MenuButton(new Rect(width * 0.5f - 130f, top + cardHeight + 26f, 260f, 56f), "VOLTAR"))
             {
                 _uiScreen = UiScreen.Menu;
             }
