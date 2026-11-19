@@ -34,6 +34,12 @@ receitas de alquimia, a civilização "Filhos da Cinza" e ondas de invasores).
 Ao abrir o jogo aparece o **menu principal** (Jogar agora, Como jogar, Configurações, Sair). Em **Configurações**, salvas automaticamente:
 **Dificuldade** (Fácil / Normal / Difícil: vida do Núcleo, Fé inicial e crescimento das invasões), **Tela cheia**, **Animações** (normal/rápidas) e **Semente** (0 = aleatória; o mesmo número repete a partida). Dificuldade e semente valem a partir da próxima partida. **Música** e **Efeitos** têm volume próprio de 0 a 10.
 
+**Alquimia (19 receitas):** além das 6 fusões iniciais há 7 combinações novas (Pira do Terror, Carrasco Carmesim, Astrolábio, Oráculo, Aberração, Relicário de Sangue, Névoa do Medo) e 6 evoluções (Forja Eterna, Golem de Magma, Mártir, Fênix, Ceifador, Altar Profano), em que um elemento já criado + um conceito vira algo maior. Os elementos agem sozinhos no fim do turno: queimam o anel inteiro, curam o Núcleo, repelem invasores, giram o anel sozinhos ou rendem Fé. O Grimório (G) rola para mostrar todas.
+
+**Dificuldade:** no Normal e no Difícil os invasores novos chegam mais fortes a cada poucos turnos (vida e, depois, ataque) e as ondas são maiores; o Fácil não reforça ninguém.
+
+**Cartas de nicho:** além das cartas básicas, as Oferendas trazem cartas para estilos específicos (Maré de Cinzas contra hordas, Muro de Chamas/Fundição/Carne Florescente para fusões em massa, Sangria e Golpe Sanguessuga para sangue, Veredito e Debandada para controle, Giro Duplo e Pêndulo para rotação, Confissão e Colheita Sagrada para Fé e heresia). Cada civilização tem um tema e toda Oferenda traz ao menos uma carta dele.
+
 **Painéis recolhíveis:** durante a partida cada seção dos painéis (Civilizações, Ao fim deste turno, Invasores, Mandamentos, Crônica e Intervenção) tem um botão `-`/`+` para abrir e fechar; com a Crônica fechada o tabuleiro ganha espaço. O jogo lembra o que você deixou fechado.
 
 **História:** o jogo tem lore próprio (ver `HISTORIA.md`): o Primeiro Soberano que partiu, o Núcleo que é âncora e prisão, a Razão como despertar. A Crônica abre com o mito, cada civilização tem sua frase, os invasores falam na primeira vez que surgem, o Inquisidor tem fala própria no turno 10 e na morte, e a tela de fim de jogo mostra um epílogo (vitória por civilização; derrota pela causa).

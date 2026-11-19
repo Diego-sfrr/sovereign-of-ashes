@@ -105,8 +105,8 @@ namespace SovereignOfAshes.Tests
 
             // Turno 4 é a primeira repetição da onda de Cultistas: 1 + crescimento.
             Assert.AreEqual(2, CultistsAtTurn(easy, 4));
-            Assert.AreEqual(3, CultistsAtTurn(normal, 4));
-            Assert.AreEqual(4, CultistsAtTurn(hard, 4));
+            Assert.AreEqual(4, CultistsAtTurn(normal, 4));
+            Assert.AreEqual(5, CultistsAtTurn(hard, 4));
         }
 
         [Test]

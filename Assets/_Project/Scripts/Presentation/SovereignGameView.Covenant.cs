@@ -68,8 +68,8 @@ namespace SovereignOfAshes.Presentation
                 GUI.Label(new Rect(rect.x + 28f, curseTop + 26f, rect.width - 56f, curseHeight), curse, BodyStyle);
                 GUI.color = previous;
 
-                _theme.ShadowText(new Rect(rect.x, rect.yMax - 52f, rect.width, 36f), hover ? "CLIQUE PARA ESCOLHER" : string.Empty,
-                    _theme.Tag, GuiTheme.Gold);
+                _theme.ShadowText(new Rect(rect.x, rect.yMax - 52f, rect.width, 36f), hover ? "CLIQUE PARA ESCOLHER" : "ESCOLHER",
+                    _theme.Centered, hover ? GuiTheme.Gold : GuiTheme.TextDim);
 
                 if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
                 {

@@ -54,7 +54,7 @@ namespace SovereignOfAshes.Achievements
             new AchievementDefinition("exterminator", "Exterminador", "Destrua 100 invasores (somando todas as partidas).", 100),
             new AchievementDefinition("horde_reaper", "Ceifador de Hordas", "Destrua 500 invasores (somando todas as partidas).", 500),
             new AchievementDefinition("alchemist", "Primeira Transmutação", "Faça a sua primeira fusão alquímica."),
-            new AchievementDefinition("grand_alchemist", "Mestre Alquimista", "Crie todos os 6 elementos das receitas.", 6),
+            new AchievementDefinition("grand_alchemist", "Mestre Alquimista", "Crie todos os 19 elementos das receitas.", 19),
             new AchievementDefinition("devout", "Devoto", "Gaste 100 de Fé (somando todas as partidas).", 100),
             new AchievementDefinition("offering", "Oferenda Aceita", "Leve uma carta nova para o baralho numa Oferenda Divina."),
             new AchievementDefinition("grand_deck", "Baralho Consagrado", "Chegue a 21 cartas no baralho numa mesma partida."),

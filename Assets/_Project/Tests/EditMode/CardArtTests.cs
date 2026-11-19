@@ -37,6 +37,16 @@ namespace SovereignOfAshes.Tests
             }
         }
 
+        [Test]
+        public void EveryCivilization_HasItsOwnPortrait()
+        {
+            foreach (CivilizationDefinition civ in CivilizationCatalog.All)
+            {
+                var texture = Resources.Load<Texture2D>(ArtCatalog.CivilizationPortraitPath(civ.Id));
+                Assert.IsNotNull(texture, $"Falta o retrato de '{civ.Id}' em Resources/Portraits (civ_{civ.Id}).");
+            }
+        }
+
         [TestCase("profaner")]
         [TestCase("heretic_herald")]
         [TestCase("inquisitor")]

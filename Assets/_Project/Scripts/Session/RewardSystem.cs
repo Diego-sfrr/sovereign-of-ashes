@@ -36,6 +36,7 @@ namespace SovereignOfAshes.Session
         private readonly TurnSystem _turns;
         private readonly List<ICardDefinition> _pool = new List<ICardDefinition>();
         private readonly Random _random;
+        private readonly HashSet<SovereignOfAshes.Core.ConceptType> _niche = new HashSet<SovereignOfAshes.Core.ConceptType>();
         private readonly int _everyNTurns;
         private readonly int _skipFaith;
         private bool _disposed;
@@ -70,7 +71,7 @@ namespace SovereignOfAshes.Session
         /// <param name="skipFaith">Fé ganha ao recusar.</param>
         /// <exception cref="ArgumentNullException">Se algum argumento obrigatório for nulo.</exception>
         public RewardSystem(CardDeck deck, FaithPool faith, TurnSystem turns, IEnumerable<ICardDefinition> pool,
-            Random random, int everyNTurns, int skipFaith = 1)
+            Random random, int everyNTurns, int skipFaith = 1, IEnumerable<SovereignOfAshes.Core.ConceptType> niche = null)
         {
             _deck = deck ?? throw new ArgumentNullException(nameof(deck));
             _faith = faith ?? throw new ArgumentNullException(nameof(faith));
@@ -78,6 +79,11 @@ namespace SovereignOfAshes.Session
             _random = random ?? throw new ArgumentNullException(nameof(random));
             _everyNTurns = Math.Max(0, everyNTurns);
             _skipFaith = Math.Max(0, skipFaith);
+
+            if (niche != null)
+            {
+                _niche.UnionWith(niche);
+            }
 
             if (pool != null)
             {
@@ -183,6 +189,21 @@ namespace SovereignOfAshes.Session
             var candidates = new List<ICardDefinition>(_pool);
             var picks = new List<ICardDefinition>();
             var usedIds = new HashSet<string>();
+
+            // A primeira carta é do nicho da civilização (quando há alguma no pool): a build ganha reforço certo,
+            // e as outras duas continuam sorteadas, para a Oferenda seguir surpreendendo.
+            if (_niche.Count > 0)
+            {
+                var themed = candidates.FindAll(c => _niche.Contains(c.PrimaryConcept));
+
+                if (themed.Count > 0)
+                {
+                    ICardDefinition first = themed[_random.Next(themed.Count)];
+                    candidates.RemoveAll(c => c.Id == first.Id);
+                    usedIds.Add(first.Id);
+                    picks.Add(first);
+                }
+            }
 
             while (picks.Count < 3 && candidates.Count > 0)
             {

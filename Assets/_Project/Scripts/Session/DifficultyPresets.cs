@@ -1,5 +1,6 @@
 using System;
 using SovereignOfAshes.Economy;
+using SovereignOfAshes.Invaders;
 
 namespace SovereignOfAshes.Session
 {
@@ -30,11 +31,11 @@ namespace SovereignOfAshes.Session
             switch (difficulty)
             {
                 case Difficulty.Easy:
-                    return "Núcleo com 36 de vida, 4 de Fé inicial (até 11) e invasões bem mais fracas, para aprender sem sufoco.";
+                    return "Núcleo com 36 de vida, 4 de Fé inicial (até 11) e invasores sem reforço, para aprender sem sufoco.";
                 case Difficulty.Hard:
-                    return "Núcleo com 21 de vida, 2 de Fé inicial (até 8) e invasões que crescem mais rápido: pede planejamento.";
+                    return "Núcleo com 21 de vida, 2 de Fé inicial (até 8). Ondas enormes e invasores que ganham +2 de vida a cada 3 turnos: implacável.";
                 default:
-                    return "O equilíbrio padrão: Núcleo com 30 de vida, 3 de Fé inicial (até 10).";
+                    return "Núcleo com 30 de vida, 3 de Fé inicial (até 10). Ondas maiores e invasores que ganham +1 de vida a cada 4 turnos: esperar custa caro.";
             }
         }
 
@@ -53,14 +54,25 @@ namespace SovereignOfAshes.Session
 
         /// <summary>Invasores a mais que cada repetição da onda de Cultistas traz.</summary>
         /// <param name="difficulty">Dificuldade.</param>
-        /// <returns>1 (fácil), 2 (normal) ou 3 (difícil).</returns>
-        public static int CultistGrowthPerRepeat(Difficulty difficulty)
+        /// <returns>1 (fácil), 3 (normal) ou 4 (difícil).</returns>
+        public static int CultistGrowthPerRepeat(Difficulty difficulty) => Pressure(difficulty).CultistGrowth;
+
+        /// <summary>
+        /// Ritmo das ondas e reforço dos invasores de cada dificuldade. No Normal e no Difícil os invasores novos
+        /// chegam mais duros a cada poucos turnos, então esperar demais custa caro.
+        /// </summary>
+        /// <param name="difficulty">Dificuldade.</param>
+        /// <returns>Pressão aplicada às ondas.</returns>
+        public static InvasionPressure Pressure(Difficulty difficulty)
         {
             switch (difficulty)
             {
-                case Difficulty.Easy: return 1;
-                case Difficulty.Hard: return 3;
-                default: return 2;
+                case Difficulty.Easy:
+                    return new InvasionPressure(1, 3, 3, 4, InvaderEscalation.None);
+                case Difficulty.Hard:
+                    return new InvasionPressure(4, 3, 2, 2, new InvaderEscalation(turnsPerTier: 3, healthPerTier: 2, tiersPerAttack: 2));
+                default:
+                    return new InvasionPressure(3, 3, 2, 3, new InvaderEscalation(turnsPerTier: 4, healthPerTier: 1, tiersPerAttack: 2));
             }
         }
 
@@ -90,7 +102,7 @@ namespace SovereignOfAshes.Session
 
             if (replaceInvasion)
             {
-                config.InvasionPlanner = DefaultContent.CreateInvasionPlanner(CultistGrowthPerRepeat(difficulty));
+                config.InvasionPlanner = DefaultContent.CreateInvasionPlanner(Pressure(difficulty));
             }
         }
     }

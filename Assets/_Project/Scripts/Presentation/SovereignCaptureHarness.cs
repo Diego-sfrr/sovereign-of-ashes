@@ -139,6 +139,9 @@ namespace SovereignOfAshes.Presentation
             _view.SetGrimoireOpen(true);
             yield return new WaitForSeconds(0.5f);
             yield return Capture($"{shot++:00}-grimorio");
+            _view.SetGrimoireScroll(100000f);
+            yield return new WaitForSeconds(0.3f);
+            yield return Capture($"{shot++:00}-grimorio-fim");
             _view.SetGrimoireOpen(false);
 
             for (int turn = 0; turn < MaxTurns && session.Turns.State == TurnState.AwaitingPlayer; turn++)

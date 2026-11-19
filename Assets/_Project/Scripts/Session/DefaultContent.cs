@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using SovereignOfAshes.Alchemy;
 using SovereignOfAshes.Alchemy.Effects;
 using SovereignOfAshes.Board;
@@ -70,7 +71,15 @@ namespace SovereignOfAshes.Session
         /// </summary>
         /// <param name="cultistGrowthPerRepeat">Cultistas a mais a cada repetição da onda (a dificuldade usa 1, 2 ou 3).</param>
         /// <returns>Planejador de invasão.</returns>
-        public static IInvasionPlanner CreateInvasionPlanner(int cultistGrowthPerRepeat = 2)
+        public static IInvasionPlanner CreateInvasionPlanner(int cultistGrowthPerRepeat = 2) =>
+            CreateInvasionPlanner(new InvasionPressure(cultistGrowthPerRepeat, 3, 3, 4, InvaderEscalation.None));
+
+        /// <summary>
+        /// Ondas padrão com a pressão de uma dificuldade: ritmo das ondas e reforço dos invasores com o passar dos turnos.
+        /// </summary>
+        /// <param name="pressure">Ritmo e reforço.</param>
+        /// <returns>Planejador de invasão.</returns>
+        public static IInvasionPlanner CreateInvasionPlanner(InvasionPressure pressure)
         {
             var cultist = new SimpleInvaderDefinition("ash_cultist", "Cultista Cinzento", maxHealth: 5, attack: 2, faithBounty: 1);
             var colossus = new SimpleInvaderDefinition("void_colossus", "Colosso do Vazio", maxHealth: 12, attack: 4, faithBounty: 3);
@@ -78,14 +87,16 @@ namespace SovereignOfAshes.Session
             var herald = new SimpleInvaderDefinition("heretic_herald", "Arauto Herege", maxHealth: 6, attack: 0, faithBounty: 2, rationalityPerTurn: 1);
             var inquisitor = new SimpleInvaderDefinition("inquisitor", "Inquisidor Cinzento", maxHealth: 20, attack: 4, faithBounty: 5, rationalityPerTurn: 1);
 
-            return new WaveInvasionPlanner(new[]
+            var waves = new WaveInvasionPlanner(new[]
             {
-                new InvasionWave(cultist, firstTurn: 1, baseCount: 1, everyNTurns: 3, countGrowthPerRepeat: cultistGrowthPerRepeat),
-                new InvasionWave(colossus, firstTurn: 5, baseCount: 1, everyNTurns: 3, countGrowthPerRepeat: 0),
-                new InvasionWave(profaner, firstTurn: 6, baseCount: 1, everyNTurns: 4, countGrowthPerRepeat: 0),
+                new InvasionWave(cultist, firstTurn: 1, baseCount: 1, everyNTurns: pressure.CultistEvery, countGrowthPerRepeat: pressure.CultistGrowth),
+                new InvasionWave(colossus, firstTurn: 5, baseCount: 1, everyNTurns: pressure.ColossusEvery, countGrowthPerRepeat: 0),
+                new InvasionWave(profaner, firstTurn: 6, baseCount: 1, everyNTurns: pressure.ProfanerEvery, countGrowthPerRepeat: 0),
                 new InvasionWave(herald, firstTurn: 9, baseCount: 1, everyNTurns: 6, countGrowthPerRepeat: 0),
                 new InvasionWave(inquisitor, firstTurn: 10, baseCount: 1, everyNTurns: 10, countGrowthPerRepeat: 0)
             });
+
+            return pressure.Escalation.TurnsPerTier > 0 ? new EscalatingInvasionPlanner(waves, pressure.Escalation) : (IInvasionPlanner)waves;
         }
 
         /// <summary>
@@ -109,6 +120,20 @@ namespace SovereignOfAshes.Session
             var ashes = new SimpleElementDefinition("ashes", "Cinzas", ElementKind.Concept);
             var altar = new SimpleElementDefinition("blood_altar", "Altar de Sacrifício", ElementKind.Structure);
 
+            var pyre = new SimpleElementDefinition("fear_pyre", "Pira do Terror", ElementKind.Structure);
+            var executioner = new SimpleElementDefinition("crimson_executioner", "Carrasco Carmesim", ElementKind.Entity);
+            var astrolabe = new SimpleElementDefinition("astrolabe", "Astrolábio", ElementKind.Structure);
+            var oracle = new SimpleElementDefinition("oracle", "Oráculo", ElementKind.Entity);
+            var abomination = new SimpleElementDefinition("abomination", "Aberração", ElementKind.Entity);
+            var reliquary = new SimpleElementDefinition("blood_reliquary", "Relicário de Sangue", ElementKind.Structure);
+            var mist = new SimpleElementDefinition("fear_mist", "Névoa do Medo", ElementKind.Structure);
+            var eternalForge = new SimpleElementDefinition("eternal_forge", "Forja Eterna", ElementKind.Structure);
+            var magmaGolem = new SimpleElementDefinition("magma_golem", "Golem de Magma", ElementKind.Entity);
+            var martyr = new SimpleElementDefinition("martyr", "Mártir", ElementKind.Entity);
+            var phoenix = new SimpleElementDefinition("phoenix", "Fênix", ElementKind.Entity);
+            var reaper = new SimpleElementDefinition("grim_reaper", "Ceifador", ElementKind.Entity);
+            var profaneAltar = new SimpleElementDefinition("profane_altar", "Altar Profano", ElementKind.Structure);
+
             return new InMemoryRecipeProvider()
                 .AddBase(ConceptType.Flesh, flesh)
                 .AddBase(ConceptType.Fire, fire)
@@ -122,7 +147,24 @@ namespace SovereignOfAshes.Session
                 .AddRecipe(flesh, ConceptType.Faith, saint)
                 .AddRecipe(blood, ConceptType.Fear, wraith)
                 .AddRecipe(fire, ConceptType.Time, ashes)
-                .AddRecipe(faith, ConceptType.Blood, altar);
+                .AddRecipe(faith, ConceptType.Blood, altar)
+
+                // Segunda leva: combinações novas de conceitos...
+                .AddRecipe(fire, ConceptType.Fear, pyre)
+                .AddRecipe(blood, ConceptType.Iron, executioner)
+                .AddRecipe(time, ConceptType.Iron, astrolabe)
+                .AddRecipe(time, ConceptType.Faith, oracle)
+                .AddRecipe(fear, ConceptType.Flesh, abomination)
+                .AddRecipe(blood, ConceptType.Time, reliquary)
+                .AddRecipe(fear, ConceptType.Time, mist)
+
+                // ...e evoluções: um elemento já criado + um conceito vira algo maior.
+                .AddRecipe(forge, ConceptType.Time, eternalForge)
+                .AddRecipe(golem, ConceptType.Fire, magmaGolem)
+                .AddRecipe(saint, ConceptType.Blood, martyr)
+                .AddRecipe(ashes, ConceptType.Faith, phoenix)
+                .AddRecipe(wraith, ConceptType.Fear, reaper)
+                .AddRecipe(altar, ConceptType.Fear, profaneAltar);
         }
 
         /// <summary>
@@ -137,7 +179,22 @@ namespace SovereignOfAshes.Session
                 .Add("living_saint", new CivilizationPulseEffect(rationalityDelta: -1, militaryPowerDelta: 0, faithDelta: 0))
                 .Add("wraith", new LifeDrainEffect(damage: 2, healPerHit: 1))
                 .Add("ashes", new FaithSpringEffect(1))
-                .Add("blood_altar", new FaithSpringEffect(2), new CivilizationPulseEffect(rationalityDelta: 1, militaryPowerDelta: 0, faithDelta: 0));
+                .Add("blood_altar", new FaithSpringEffect(2), new CivilizationPulseEffect(rationalityDelta: 1, militaryPowerDelta: 0, faithDelta: 0))
+
+                // Segunda leva: cada elemento faz algo diferente (varrer o anel, curar, repelir, girar sozinho, render Fé).
+                .Add("fear_pyre", new RingBurnEffect(1))
+                .Add("crimson_executioner", new LifeDrainEffect(damage: 4, healPerHit: 2))
+                .Add("astrolabe", new RotationDriftEffect(RotationDirection.Clockwise))
+                .Add("oracle", new FaithSpringEffect(1), new CivilizationPulseEffect(rationalityDelta: 0, militaryPowerDelta: 1, faithDelta: 0))
+                .Add("abomination", new BarrierEffect(maxDurability: 2, counterDamage: 4))
+                .Add("blood_reliquary", new CoreHealEffect(2))
+                .Add("fear_mist", new RepelEffect())
+                .Add("eternal_forge", new BurnEffect(damageOnSector: 5, damageOnNeighbors: 2))
+                .Add("magma_golem", new BarrierEffect(maxDurability: 4, counterDamage: 3), new BurnEffect(damageOnSector: 0, damageOnNeighbors: 2))
+                .Add("martyr", new CoreHealEffect(2), new CivilizationPulseEffect(rationalityDelta: -2, militaryPowerDelta: 0, faithDelta: 0))
+                .Add("phoenix", new FaithSpringEffect(3), new CoreHealEffect(1))
+                .Add("grim_reaper", new LifeDrainEffect(damage: 5, healPerHit: 2))
+                .Add("profane_altar", new FaithSpringEffect(4), new CivilizationPulseEffect(rationalityDelta: 2, militaryPowerDelta: 0, faithDelta: 0));
 
         /// <summary>
         /// Baralho inicial com 15 cartas.
@@ -224,11 +281,87 @@ namespace SovereignOfAshes.Session
                     2, ConceptType.Faith, TargetRings.None, false, false, new ITileEffect[] { new CivilizationInfluenceEffect(-5, 0, 0) }),
                 new SimpleCardDefinition("iron_oath", "Juramento de Ferro", "Todas as civilizações: +3 de Poder Militar.",
                     2, ConceptType.Iron, TargetRings.None, false, false, new ITileEffect[] { new CivilizationInfluenceEffect(0, 0, 3) })
-            };
+            }.Concat(CreateNicheCards()).ToList();
         }
+
+        /// <summary>
+        /// Cartas de nicho: cada uma recompensa um jeito específico de jogar (anti-horda, alquimia em massa, sacrifício
+        /// de sangue, execução, rotação, anti-heresia e economia). Entram nas Oferendas junto com as demais.
+        /// </summary>
+        /// <returns>As cartas de nicho.</returns>
+        public static IReadOnlyList<ICardDefinition> CreateNicheCards() => new ICardDefinition[]
+        {
+            // Fogo: varrer hordas e preparar fusões em massa.
+            new SimpleCardDefinition("ash_tide", "Maré de Cinzas", "Causa 3 de dano a todos os invasores do anel do setor alvo.",
+                3, ConceptType.Fire, TargetRings.All, false, true, new ITileEffect[] { new RingStrikeEffect(3) }),
+            new SimpleCardDefinition("wall_of_flame", "Muro de Chamas", "Infunde Fogo no setor alvo e em todos os vizinhos.",
+                2, ConceptType.Fire, TargetRings.All, false, false, new ITileEffect[] { new NeighborInfusionEffect(ConceptType.Fire, true) }),
+
+            // Ferro e Carne: estruturas, Golens e Poder Militar.
+            new SimpleCardDefinition("foundry", "Fundição", "Infunde Ferro no setor alvo e em todos os vizinhos.",
+                2, ConceptType.Iron, TargetRings.All, false, false, new ITileEffect[] { new NeighborInfusionEffect(ConceptType.Iron, true) }),
+            new SimpleCardDefinition("flesh_bloom", "Carne Florescente", "Infunde Carne no setor alvo e em todos os vizinhos.",
+                2, ConceptType.Flesh, TargetRings.All, false, false, new ITileEffect[] { new NeighborInfusionEffect(ConceptType.Flesh, true) }),
+            new SimpleCardDefinition("crusade", "Cruzada", "Todas as civilizações: +5 de Poder Militar e +2 de Racionalidade.",
+                3, ConceptType.Iron, TargetRings.None, false, false, new ITileEffect[] { new CivilizationInfluenceEffect(2, 0, 5) }),
+
+            // Sangue: pagar com a vida do Núcleo por poder.
+            new SimpleCardDefinition("bloodletting", "Sangria", "O Núcleo perde 3 de vida (nunca morre por isto) e você causa 7 de dano a um invasor.",
+                1, ConceptType.Blood, TargetRings.All, false, true, new ITileEffect[] { new FaithTitheEffect(3, 0), new InvaderStrikeEffect(7, false) }),
+            new SimpleCardDefinition("leech_strike", "Golpe Sanguessuga", "Causa 3 de dano a um invasor e cura 3 de vida do Núcleo.",
+                2, ConceptType.Blood, TargetRings.All, false, true, new ITileEffect[] { new InvaderStrikeEffect(3, false), new HealCoreEffect(3) }),
+
+            // Medo: execução e controle.
+            new SimpleCardDefinition("verdict", "Veredito", "Mata na hora um invasor com 6 ou menos de vida; se tiver mais, causa 3 de dano.",
+                2, ConceptType.Fear, TargetRings.All, false, true, new ITileEffect[] { new ExecuteEffect(6, 3) }),
+            new SimpleCardDefinition("rout", "Debandada", "Causa 2 de dano a um invasor e o empurra um anel para fora.",
+                2, ConceptType.Fear, TargetRings.All, false, true, new ITileEffect[] { new InvaderStrikeEffect(2, false), new PushInvaderOutwardEffect() }),
+
+            // Tempo: rotações que reposicionam o tabuleiro.
+            new SimpleCardDefinition("double_turn", "Giro Duplo", "Gira o anel do setor 2 casas no sentido horário.",
+                2, ConceptType.Time, TargetRings.All, false, false, new ITileEffect[] { new RotateRingEffect(2, RotationDirection.Clockwise) }),
+            new SimpleCardDefinition("pendulum", "Pêndulo", "Causa 2 de dano a um invasor e gira o anel dele 1 casa no sentido horário.",
+                1, ConceptType.Time, TargetRings.All, false, true,
+                new ITileEffect[] { new InvaderStrikeEffect(2, false), new RotateRingEffect(1, RotationDirection.Clockwise) }),
+
+            // Fé: acalmar a heresia e render mais Fé.
+            new SimpleCardDefinition("confession", "Confissão", "Todas as civilizações: -2 de Racionalidade. Cura 2 de vida do Núcleo.",
+                1, ConceptType.Faith, TargetRings.None, false, false, new ITileEffect[] { new CivilizationInfluenceEffect(-2, 0, 0), new HealCoreEffect(2) }),
+            new SimpleCardDefinition("harvest", "Colheita Sagrada", "Todas as civilizações: +6 de Fé, que rende mais Fé a cada turno.",
+                2, ConceptType.Faith, TargetRings.None, false, false, new ITileEffect[] { new CivilizationInfluenceEffect(0, 6, 0) })
+        };
 
         private static SimpleCardDefinition Infusion(string id, string name, ConceptType concept, string description) =>
             new SimpleCardDefinition(id, name, description, 1, concept, TargetRings.All, false, false,
                 new ITileEffect[] { new ConceptInfusionEffect(concept) });
+    }
+
+    /// <summary>Ritmo das ondas e reforço dos invasores que uma dificuldade aplica.</summary>
+    public readonly struct InvasionPressure
+    {
+        /// <summary>Cultistas a mais a cada repetição da onda.</summary>
+        public int CultistGrowth { get; }
+
+        /// <summary>De quantos em quantos turnos chega a onda de Cultistas.</summary>
+        public int CultistEvery { get; }
+
+        /// <summary>De quantos em quantos turnos chegam Colossos (a partir do 5).</summary>
+        public int ColossusEvery { get; }
+
+        /// <summary>De quantos em quantos turnos chegam Profanadores (a partir do 6).</summary>
+        public int ProfanerEvery { get; }
+
+        /// <summary>Reforço dos invasores novos com o passar dos turnos.</summary>
+        public InvaderEscalation Escalation { get; }
+
+        /// <summary>Cria a pressão.</summary>
+        public InvasionPressure(int cultistGrowth, int cultistEvery, int colossusEvery, int profanerEvery, InvaderEscalation escalation)
+        {
+            CultistGrowth = cultistGrowth;
+            CultistEvery = cultistEvery;
+            ColossusEvery = colossusEvery;
+            ProfanerEvery = profanerEvery;
+            Escalation = escalation;
+        }
     }
 }

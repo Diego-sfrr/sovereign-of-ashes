@@ -185,6 +185,18 @@ namespace SovereignOfAshes.Presentation
             Fill(new Rect(rect.x + thickness, rect.y + thickness, rect.width - thickness * 2f, 2f), new Color(1f, 1f, 1f, 0.06f));
         }
 
+        /// <summary>Contorno de quatro bordas, sem preencher o miolo (a arte por baixo continua visível).</summary>
+        /// <param name="rect">Área.</param>
+        /// <param name="color">Cor do contorno.</param>
+        /// <param name="thickness">Espessura.</param>
+        public void Outline(Rect rect, Color color, float thickness = 3f)
+        {
+            Fill(new Rect(rect.x, rect.y, rect.width, thickness), color);
+            Fill(new Rect(rect.x, rect.yMax - thickness, rect.width, thickness), color);
+            Fill(new Rect(rect.x, rect.y + thickness, thickness, rect.height - thickness * 2f), color);
+            Fill(new Rect(rect.xMax - thickness, rect.y + thickness, thickness, rect.height - thickness * 2f), color);
+        }
+
         /// <summary>Painel padrão do HUD: moldura de bronze, filete interno e cantoneiras douradas.</summary>
         /// <param name="rect">Área.</param>
         public void Panel(Rect rect)

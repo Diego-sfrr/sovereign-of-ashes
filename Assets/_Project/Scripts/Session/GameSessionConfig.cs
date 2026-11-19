@@ -98,6 +98,9 @@ namespace SovereignOfAshes.Session
         /// <summary>Cartas que podem surgir nas Oferendas Divinas (vazio = sem oferendas).</summary>
         public List<ICardDefinition> RewardPool { get; } = new List<ICardDefinition>();
 
+        /// <summary>Conceitos do "nicho" da civilização: cada Oferenda traz ao menos uma carta deles (se houver no pool).</summary>
+        public List<SovereignOfAshes.Core.ConceptType> RewardNiche { get; } = new List<SovereignOfAshes.Core.ConceptType>();
+
         /// <summary>Intervalo, em turnos, entre as Oferendas (0 desliga).</summary>
         public int RewardEveryNTurns { get; set; } = 3;
 

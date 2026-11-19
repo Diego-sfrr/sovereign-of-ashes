@@ -51,7 +51,7 @@ namespace SovereignOfAshes.Presentation
 
                 if (hover)
                 {
-                    _theme.Frame(new Rect(drawRect.x - 4f, drawRect.y - 4f, drawRect.width + 8f, drawRect.height + 8f), GuiTheme.Gold, Color.clear, 3f);
+                    _theme.Outline(new Rect(drawRect.x - 4f, drawRect.y - 4f, drawRect.width + 8f, drawRect.height + 8f), GuiTheme.Gold, 3f);
                 }
 
                 int owned = _session.Deck.CountOf(card.Id);

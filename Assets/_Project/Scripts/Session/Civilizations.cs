@@ -36,9 +36,16 @@ namespace SovereignOfAshes.Session
         /// <summary>Poder Militar inicial (só para mostrar na escolha).</summary>
         public int MilitaryPower { get; }
 
+        /// <summary>Conceitos favorecidos: cada Oferenda Divina traz ao menos uma carta deles.</summary>
+        public IReadOnlyList<ConceptType> Niche { get; }
+
+        /// <summary>Os conceitos favorecidos por extenso, como "Fogo e Fé".</summary>
+        public string NicheLabel => string.Join(" e ", Niche.Select(DisplayNames.Concept));
+
         internal CivilizationDefinition(string id, string name, string style, string boon, string curse, int militaryPower,
-            Action<GameSessionConfig> apply)
+            ConceptType[] niche, Action<GameSessionConfig> apply)
         {
+            Niche = niche ?? new ConceptType[0];
             Id = id;
             Name = name;
             Style = style;
@@ -60,6 +67,8 @@ namespace SovereignOfAshes.Session
                 throw new ArgumentNullException(nameof(config));
             }
 
+            config.RewardNiche.Clear();
+            config.RewardNiche.AddRange(Niche);
             _apply(config);
         }
     }
@@ -78,12 +87,14 @@ namespace SovereignOfAshes.Session
             new CivilizationDefinition(DefaultId, "Filhos da Cinza",
                 "Equilibrados: sem surpresas, bons para aprender.",
                 "Poder 5 e Razão que sobe devagar (1 por turno).", "Sem habilidade especial.", 5,
+                new[] { ConceptType.Fire, ConceptType.Faith },
                 config => Replace(config, "Filhos da Cinza", 5, 10, 0, 20, 10)),
 
             new CivilizationDefinition("abyss_smiths", "Forjadores do Abismo",
                 "Muralha de ferro: estruturas e Golens no centro do jogo.",
                 "Poder 8, começam com um Golem de Ferro no anel do meio e 3 cartas de Ferro e Carne a mais no baralho.",
                 "Começam com 2 de Razão e a reserva de Fé guarda 2 cristais a menos.", 8,
+                new[] { ConceptType.Iron, ConceptType.Flesh },
                 config =>
                 {
                     Replace(config, "Forjadores do Abismo", 8, 10, 2, 20, 10);
@@ -102,6 +113,7 @@ namespace SovereignOfAshes.Session
                 "Sangue e medo: dor que vira força, com a fé sempre à beira do abismo.",
                 "Cada carta de Sangue ou Medo que você joga cura 2 de vida do Núcleo. Mais 3 cartas de Sangue e Medo no baralho.",
                 "Poder 3 e a Razão sobe 2 por turno: a heresia chega rápido.", 3,
+                new[] { ConceptType.Blood, ConceptType.Fear },
                 config =>
                 {
                     Replace(config, "Flagelantes do Eclipse", 3, 10, 2, 20, 10);
@@ -121,6 +133,7 @@ namespace SovereignOfAshes.Session
                 "Mestres dos anéis: tempo e rotação a seu favor.",
                 "Girar um anel (Intervenção Divina) custa 0 de Fé. A Razão só sobe nos turnos pares. 4 cartas de giro e Tempo no baralho.",
                 "Poder 4 e começam com 1 de Fé a menos.", 4,
+                new[] { ConceptType.Time },
                 config =>
                 {
                     Replace(config, "Eremitas do Tempo", 4, 10, 0, 20, 10);

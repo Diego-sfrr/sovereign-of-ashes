@@ -20,7 +20,7 @@ namespace SovereignOfAshes.Presentation
         private void DrawCivilizationChoice(float width, float height)
         {
             string modeName = _pendingMode == GameMode.Endless ? "Modo Infinito" : "Nova partida";
-            const float cardHeight = 450f;
+            const float cardHeight = 520f;
             float top = Mathf.Max(170f, (height - cardHeight) * 0.5f + 30f);
             float head = top - 150f;
             _theme.ShadowText(new Rect(0f, head, width, 56f), "ESCOLHA SUA CIVILIZAÇÃO", _theme.Heading, GuiTheme.Gold);
@@ -42,7 +42,7 @@ namespace SovereignOfAshes.Presentation
                 _theme.Frame(rect, hover ? GuiTheme.Gold : GuiTheme.Bronze,
                     hover ? new Color(0.20f, 0.14f, 0.07f) : new Color(0.10f, 0.08f, 0.08f), hover ? 5f : 4f);
 
-                Texture2D portrait = _art.Painting(ArtCatalog.CivilizationPortraitPath(false));
+                Texture2D portrait = CivilizationPortrait(civilization.Id, false);
 
                 if (portrait != null)
                 {
@@ -83,8 +83,10 @@ namespace SovereignOfAshes.Presentation
                 GUI.Label(new Rect(rect.x + 20f, y + 22f, rect.width - 40f, curseHeight), curse, HintStyle);
                 GUI.color = previous;
 
-                _theme.ShadowText(new Rect(rect.x, rect.yMax - 46f, rect.width, 30f), hover ? "CLIQUE PARA ESCOLHER" : string.Empty,
-                    _theme.Tag, GuiTheme.Gold);
+                GUI.Label(new Rect(rect.x + 20f, rect.yMax - 84f, rect.width - 40f, 22f), $"OFERENDAS FAVORECEM: {civilization.NicheLabel}", _theme.Tag);
+
+                _theme.ShadowText(new Rect(rect.x, rect.yMax - 46f, rect.width, 30f), hover ? "CLIQUE PARA ESCOLHER" : "ESCOLHER",
+                    _theme.Centered, hover ? GuiTheme.Gold : GuiTheme.TextDim);
 
                 if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
                 {

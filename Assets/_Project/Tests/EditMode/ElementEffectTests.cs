@@ -218,7 +218,7 @@ namespace SovereignOfAshes.Tests
             IElementEffectProvider effects = DefaultContent.CreateElementEffects();
             var catalog = (IAlchemyRecipeCatalog)provider;
 
-            Assert.AreEqual(6, catalog.Recipes.Count);
+            Assert.AreEqual(19, catalog.Recipes.Count);
             Assert.AreEqual(7, catalog.BaseElements.Count);
 
             foreach (IAlchemyRecipe recipe in catalog.Recipes)

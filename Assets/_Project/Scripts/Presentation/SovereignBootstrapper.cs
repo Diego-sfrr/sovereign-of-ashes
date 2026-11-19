@@ -209,28 +209,8 @@ namespace SovereignOfAshes.Presentation
             }
 
             // A dificuldade escolhida no menu vale sobre o conteúdo padrão; o que o designer configurou nos assets prevalece.
-            bool endless = LastSettings.Mode == GameMode.Endless;
-
-            // No modo infinito a dificuldade é sempre a mais dura (hardcore); o designer ainda manda nos assets.
-            DifficultyPresets.Apply(config, endless ? Difficulty.Hard : LastSettings.Difficulty,
-                replaceFaith: _faithEconomy == null, replaceInvasion: _invasionProfile == null && !endless);
-
-            // A civilização escolhida troca a padrão (vem antes do pacto, que pode mexer nos números dela).
-            CivilizationCatalog.Find(LastSettings.CivilizationId)?.Apply(config);
-
-            // O Pacto escolhido no menu vem depois da dificuldade (a vida do Núcleo, por exemplo, já foi escalada).
-            Covenant covenant = CovenantCatalog.Find(LastSettings.CovenantId);
-            covenant?.Apply(config);
-
-            if (endless)
-            {
-                config.TurnsToSurvive = 0;
-
-                if (_invasionProfile == null)
-                {
-                    config.InvasionPlanner = new EndlessInvasionPlanner();
-                }
-            }
+            GameConfigFactory.ApplySettings(config, LastSettings,
+                replaceFaith: _faithEconomy == null, replaceInvasion: _invasionProfile == null);
 
             return config;
         }

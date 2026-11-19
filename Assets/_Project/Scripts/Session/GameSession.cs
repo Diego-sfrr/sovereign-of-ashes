@@ -191,7 +191,7 @@ namespace SovereignOfAshes.Session
             });
 
             Rewards = new RewardSystem(Deck, Faith, Turns, config.RewardPool, new Random(unchecked(seed * 17 + 3)),
-                config.RewardEveryNTurns, config.RewardSkipFaith);
+                config.RewardEveryNTurns, config.RewardSkipFaith, config.RewardNiche);
             Player = new PlayerActionService(Turns, Deck, Cards) { ActionBlocker = () => Rewards.HasPending };
             Turns.AwaitingPlayer += _ => RingControl.BeginTurn();
             _startHooks.AddRange(config.StartHooks);

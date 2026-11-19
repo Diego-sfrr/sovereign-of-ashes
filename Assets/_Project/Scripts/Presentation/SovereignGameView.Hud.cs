@@ -276,9 +276,21 @@ namespace SovereignOfAshes.Presentation
             }
         }
 
+        // Cada seita tem o seu retrato; a herege é comum a todas. Sem arte própria, cai no retrato genérico.
+        private Texture2D CivilizationPortrait(string civilizationId, bool heretic)
+        {
+            if (heretic)
+            {
+                return _art.Painting(ArtCatalog.CivilizationPortraitPath(true));
+            }
+
+            Texture2D own = _art.Painting(ArtCatalog.CivilizationPortraitPath(civilizationId ?? CivilizationCatalog.DefaultId));
+            return own != null ? own : _art.Painting(ArtCatalog.CivilizationPortraitPath(false));
+        }
+
         private float DrawCivilization(CivilizationEntity civ, float x, float y, float w)
         {
-            DrawPortrait(new Rect(x, y, 64f, 64f), _art.Painting(ArtCatalog.CivilizationPortraitPath(civ.IsHeretic)),
+            DrawPortrait(new Rect(x, y, 64f, 64f), CivilizationPortrait(_bootstrapper.LastSettings.CivilizationId, civ.IsHeretic),
                 _art.Sprite(civ.IsHeretic ? "skull" : "saint"), civ.IsHeretic ? GuiTheme.Bad : GuiTheme.Bronze);
 
             float tx = x + 74f;

@@ -86,6 +86,7 @@ namespace SovereignOfAshes.Presentation
         private float _hintUntil;
         private float _guiScale = 1f;
         private bool _showGrimoire;
+        private Vector2 _grimoireScroll;
         private int _lastCoreHealth;
         private int _lastFaith;
         private int _lastTurn;
@@ -128,7 +129,13 @@ namespace SovereignOfAshes.Presentation
 
         /// <summary>Abre ou fecha o Grimório (usado pelo modo de captura automática).</summary>
         /// <param name="open">Se deve ficar aberto.</param>
-        internal void SetGrimoireOpen(bool open) => _showGrimoire = open;
+        internal void SetGrimoireOpen(bool open)
+        {
+            _showGrimoire = open;
+            _grimoireScroll = Vector2.zero;
+        }
+
+        internal void SetGrimoireScroll(float y) => _grimoireScroll = new Vector2(0f, y);
 
         /// <summary>Limpa a seleção (usado pelo modo de captura automática).</summary>
         internal void ClearSelection() => _selectedCard = -1;
@@ -613,7 +620,9 @@ namespace SovereignOfAshes.Presentation
                 contentHeight += rowHeights[i];
             }
 
-            var panel = new Rect(x, y, panelWidth, 96f + contentHeight + 78f);
+            // A lista rola dentro do painel: com 19 receitas ela não cabe na tela.
+            float panelHeight = Mathf.Min(96f + contentHeight + 78f, ReferenceHeight - 2f * y);
+            var panel = new Rect(x, y, panelWidth, panelHeight);
             _theme.Fill(new Rect(0f, 0f, width, ReferenceHeight), new Color(0f, 0f, 0f, 0.7f));
             _theme.Panel(panel);
 
@@ -622,28 +631,32 @@ namespace SovereignOfAshes.Presentation
                 "Jogue um conceito sobre o elemento que já está no setor. A ordem importa: o elemento do setor + o conceito da carta. " +
                 "Elementos criados agem sozinhos, no fim de cada turno.", _theme.Small);
 
-            float rowY = panel.y + 96f;
+            var viewRect = new Rect(panel.x, panel.y + 96f, panel.width, panel.height - 96f - 78f);
+            var contentRect = new Rect(0f, 0f, panel.width - 24f, contentHeight);
+            _grimoireScroll = GUI.BeginScrollView(viewRect, _grimoireScroll, contentRect, false, contentHeight > viewRect.height);
+            float rowY = 0f;
+            float left = 0f;
 
             if (catalog == null)
             {
-                GUI.Label(new Rect(panel.x + 28f, rowY, panel.width - 56f, 26f), "Esta fonte de receitas não pode ser listada.", _theme.Label);
+                GUI.Label(new Rect(left + 28f, rowY, panel.width - 56f, 26f), "Esta fonte de receitas não pode ser listada.", _theme.Label);
             }
 
             for (int i = 0; i < rows; i++)
             {
                 IAlchemyRecipe recipe = catalog.Recipes[i];
                 float rowHeight = rowHeights[i];
-                _theme.Fill(new Rect(panel.x + 20f, rowY, panel.width - 40f, 2f), new Color(GuiTheme.Bronze.r, GuiTheme.Bronze.g, GuiTheme.Bronze.b, 0.5f));
+                _theme.Fill(new Rect(left + 20f, rowY, panel.width - 40f, 2f), new Color(GuiTheme.Bronze.r, GuiTheme.Bronze.g, GuiTheme.Bronze.b, 0.5f));
 
                 float iy = rowY + (rowHeight - iconSize) * 0.5f;
-                float ix = panel.x + 30f;
+                float ix = left + 30f;
                 _theme.Image(new Rect(ix, iy, iconSize, iconSize), _art.Element(recipe.Reagent), Color.white);
                 _theme.ShadowText(new Rect(ix + iconSize, iy, 26f, iconSize), "+", _theme.Number, GuiTheme.Gold);
                 _theme.Image(new Rect(ix + iconSize + 26f, iy, iconSize, iconSize), _art.Sprite(ArtCatalog.ForConcept(recipe.Catalyst)), Color.white);
                 _theme.ShadowText(new Rect(ix + iconSize * 2f + 26f, iy, 26f, iconSize), "=", _theme.Number, GuiTheme.Gold);
                 _theme.Image(new Rect(ix + iconSize * 2f + 52f, iy - 4f, iconSize + 8f, iconSize + 8f), _art.Element(recipe.Result), Color.white);
 
-                float tx = panel.x + textX + 28f;
+                float tx = left + textX + 28f;
                 float tw = panelWidth - textX - 56f;
                 float ty = rowY + 10f;
                 GUI.Label(new Rect(tx, ty, tw, 24f), $"<b>{recipe.Result.DisplayName}</b>", _theme.Title);
@@ -669,6 +682,8 @@ namespace SovereignOfAshes.Presentation
 
                 rowY += rowHeight;
             }
+
+            GUI.EndScrollView();
 
             var close = new Rect(panel.xMax - 188f, panel.yMax - 62f, 160f, 42f);
             Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
