@@ -84,7 +84,7 @@ namespace SovereignOfAshes.Turns.Phases
                 }
 
                 if (neighbors.Inner == null
-                    || (_barrier != null && _barrier.TryBlock(invader, neighbors.Inner))
+                    || (_barrier != null && !invader.Definition.IgnoresBarriers() && _barrier.TryBlock(invader, neighbors.Inner))
                     || !_roster.TryMove(invader, neighbors.Inner))
                 {
                     InvaderBlocked?.Invoke(invader);

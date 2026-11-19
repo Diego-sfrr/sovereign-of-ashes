@@ -50,6 +50,13 @@ namespace SovereignOfAshes.Tests
         [TestCase("profaner")]
         [TestCase("heretic_herald")]
         [TestCase("inquisitor")]
+        [TestCase("profane_guardian")]
+        [TestCase("heretic_runner")]
+        [TestCase("necro_apostle")]
+        [TestCase("blast_scourge")]
+        [TestCase("time_prophet")]
+        [TestCase("crimson_colossus")]
+        [TestCase("heretic_king")]
         public void NewInvaders_HaveAPaintedPortrait(string invaderId)
         {
             var texture = Resources.Load<Texture2D>(ArtCatalog.InvaderPortraitPath(invaderId));

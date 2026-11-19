@@ -175,7 +175,7 @@ namespace SovereignOfAshes.Invaders
         /// <inheritdoc />
         public int RemoveDead()
         {
-            int removed = 0;
+            var slain = new List<InvaderEntity>();
 
             for (int i = _invaders.Count - 1; i >= 0; i--)
             {
@@ -188,12 +188,19 @@ namespace SovereignOfAshes.Invaders
 
                 _invaders.RemoveAt(i);
                 _occupancy.Remove(invader.Sector);
+                invader.LastSector = invader.Sector;
                 invader.Sector = null;
-                removed++;
+                slain.Add(invader);
+            }
+
+            // Os eventos saem depois de a lista estar consistente: um tratador (como a explosão do Flagelo)
+            // pode matar outros invasores e chamar RemoveDead de novo sem corromper esta varredura.
+            foreach (InvaderEntity invader in slain)
+            {
                 InvaderSlain?.Invoke(invader);
             }
 
-            return removed;
+            return slain.Count;
         }
 
         private static bool IsMoreDangerous(InvaderEntity a, InvaderEntity b)

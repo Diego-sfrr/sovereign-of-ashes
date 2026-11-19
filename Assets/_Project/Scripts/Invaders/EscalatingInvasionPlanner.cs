@@ -94,7 +94,13 @@ namespace SovereignOfAshes.Invaders
                 definition.Attack + attackBonus,
                 definition.FaithBounty,
                 definition.CorruptsElements(),
-                definition.RationalityPerTurn());
+                definition.RationalityPerTurn(),
+                definition.DamageReduction(),
+                definition.HealsRing(),
+                definition.IgnoresBarriers(),
+                definition.ExplodeDamage(),
+                definition.RotatesMiddleRing(),
+                definition.IsBoss());
 
             _scaled[key] = scaled;
             return scaled;

@@ -85,19 +85,90 @@ namespace SovereignOfAshes.Session
             var colossus = new SimpleInvaderDefinition("void_colossus", "Colosso do Vazio", maxHealth: 12, attack: 4, faithBounty: 3);
             var profaner = new SimpleInvaderDefinition("profaner", "Profanador", maxHealth: 4, attack: 1, faithBounty: 2, corruptsElements: true);
             var herald = new SimpleInvaderDefinition("heretic_herald", "Arauto Herege", maxHealth: 6, attack: 0, faithBounty: 2, rationalityPerTurn: 1);
-            var inquisitor = new SimpleInvaderDefinition("inquisitor", "Inquisidor Cinzento", maxHealth: 20, attack: 4, faithBounty: 5, rationalityPerTurn: 1);
 
-            var waves = new WaveInvasionPlanner(new[]
+            var waves = new List<InvasionWave>
             {
                 new InvasionWave(cultist, firstTurn: 1, baseCount: 1, everyNTurns: pressure.CultistEvery, countGrowthPerRepeat: pressure.CultistGrowth),
                 new InvasionWave(colossus, firstTurn: 5, baseCount: 1, everyNTurns: pressure.ColossusEvery, countGrowthPerRepeat: 0),
                 new InvasionWave(profaner, firstTurn: 6, baseCount: 1, everyNTurns: pressure.ProfanerEvery, countGrowthPerRepeat: 0),
                 new InvasionWave(herald, firstTurn: 9, baseCount: 1, everyNTurns: 6, countGrowthPerRepeat: 0),
-                new InvasionWave(inquisitor, firstTurn: 10, baseCount: 1, everyNTurns: 10, countGrowthPerRepeat: 0)
-            });
 
-            return pressure.Escalation.TurnsPerTier > 0 ? new EscalatingInvasionPlanner(waves, pressure.Escalation) : (IInvasionPlanner)waves;
+                // O chefe do meio da partida: um dos três, sorteado por partida.
+                new InvasionWave(CreateMidBoss(pressure.MidBoss), firstTurn: 10, baseCount: 1, everyNTurns: 10, countGrowthPerRepeat: 0)
+            };
+
+            if (pressure.ExtraInvaders)
+            {
+                // Invasores com habilidade: cada um ataca uma parte diferente da estratégia do jogador.
+                waves.Add(new InvasionWave(CreateGuardian(), firstTurn: 7, baseCount: 1, everyNTurns: 6, countGrowthPerRepeat: 0));
+                waves.Add(new InvasionWave(CreateRunner(), firstTurn: 8, baseCount: 1, everyNTurns: 5, countGrowthPerRepeat: 0));
+                waves.Add(new InvasionWave(CreateNecroApostle(), firstTurn: 11, baseCount: 1, everyNTurns: 7, countGrowthPerRepeat: 0));
+                waves.Add(new InvasionWave(CreateScourge(), firstTurn: 12, baseCount: 1, everyNTurns: 5, countGrowthPerRepeat: 0));
+            }
+
+            if (pressure.FinalBossHealth > 0)
+            {
+                // O chefe final chega no turno 15 (fecho do Ato III) e alcança o Núcleo antes do turno 20.
+                waves.Add(new InvasionWave(CreateFinalBoss(pressure.FinalBossHealth), firstTurn: 15, baseCount: 1, everyNTurns: 0, countGrowthPerRepeat: 0));
+            }
+
+            var planner = new WaveInvasionPlanner(waves);
+            return pressure.Escalation.TurnsPerTier > 0 ? new EscalatingInvasionPlanner(planner, pressure.Escalation) : (IInvasionPlanner)planner;
         }
+
+        /// <summary>Quantos chefes diferentes podem aparecer no turno 10.</summary>
+        public const int MidBossCount = 3;
+
+        /// <summary>
+        /// Chefe do turno 10: 0 = Inquisidor Cinzento (rende Razão), 1 = Profeta do Tempo (gira o anel do meio),
+        /// 2 = Colosso Carmesim (destrói elementos).
+        /// </summary>
+        /// <param name="index">Número do chefe (qualquer valor é reduzido ao intervalo válido).</param>
+        /// <returns>Definição do chefe.</returns>
+        public static SimpleInvaderDefinition CreateMidBoss(int index)
+        {
+            switch (((index % MidBossCount) + MidBossCount) % MidBossCount)
+            {
+                case 1:
+                    return new SimpleInvaderDefinition("time_prophet", "Profeta do Tempo", maxHealth: 26, attack: 3, faithBounty: 5,
+                        rotatesMiddleRing: true, isBoss: true);
+                case 2:
+                    return new SimpleInvaderDefinition("crimson_colossus", "Colosso Carmesim", maxHealth: 32, attack: 4, faithBounty: 5,
+                        corruptsElements: true, isBoss: true);
+                default:
+                    return new SimpleInvaderDefinition("inquisitor", "Inquisidor Cinzento", maxHealth: 20, attack: 4, faithBounty: 5,
+                        rationalityPerTurn: 1, isBoss: true);
+            }
+        }
+
+        /// <summary>Guardião Profano: cada golpe contra ele perde 2 de dano (mínimo 1). Pede ataques fortes.</summary>
+        /// <returns>Definição.</returns>
+        public static SimpleInvaderDefinition CreateGuardian() =>
+            new SimpleInvaderDefinition("profane_guardian", "Guardião Profano", maxHealth: 10, attack: 1, faithBounty: 2, damageReduction: 2);
+
+        /// <summary>Corredor Herege: ignora barreiras (o Golem não o segura). Pede dano antes que ele chegue.</summary>
+        /// <returns>Definição.</returns>
+        public static SimpleInvaderDefinition CreateRunner() =>
+            new SimpleInvaderDefinition("heretic_runner", "Corredor Herege", maxHealth: 4, attack: 2, faithBounty: 2, ignoresBarriers: true);
+
+        /// <summary>Necroapóstolo: cura 2 de vida de todos os outros invasores do anel a cada turno. Mate-o primeiro.</summary>
+        /// <returns>Definição.</returns>
+        public static SimpleInvaderDefinition CreateNecroApostle() =>
+            new SimpleInvaderDefinition("necro_apostle", "Necroapóstolo", maxHealth: 8, attack: 1, faithBounty: 3, healsRing: 2);
+
+        /// <summary>Flagelo Explosivo: ao morrer fere os vizinhos e destrói o elemento do setor. Mate-o onde não importa.</summary>
+        /// <returns>Definição.</returns>
+        public static SimpleInvaderDefinition CreateScourge() =>
+            new SimpleInvaderDefinition("blast_scourge", "Flagelo Explosivo", maxHealth: 6, attack: 3, faithBounty: 2, explodeDamage: 2);
+
+        /// <summary>
+        /// Rei Herege, chefe final: muita vida, golpe pesado e +2 de Razão por turno nas civilizações.
+        /// </summary>
+        /// <param name="health">Vida (a dificuldade escolhe).</param>
+        /// <returns>Definição.</returns>
+        public static SimpleInvaderDefinition CreateFinalBoss(int health) =>
+            new SimpleInvaderDefinition("heretic_king", "Rei Herege", maxHealth: health, attack: health >= 40 ? 5 : 4, faithBounty: 8,
+                rationalityPerTurn: 2, isBoss: true);
 
         /// <summary>
         /// Elementos e receitas padrão da Alquimia Divina.
@@ -336,7 +407,7 @@ namespace SovereignOfAshes.Session
                 new ITileEffect[] { new ConceptInfusionEffect(concept) });
     }
 
-    /// <summary>Ritmo das ondas e reforço dos invasores que uma dificuldade aplica.</summary>
+    /// <summary>Ritmo das ondas, reforço e chefes que uma dificuldade aplica.</summary>
     public readonly struct InvasionPressure
     {
         /// <summary>Cultistas a mais a cada repetição da onda.</summary>
@@ -354,14 +425,33 @@ namespace SovereignOfAshes.Session
         /// <summary>Reforço dos invasores novos com o passar dos turnos.</summary>
         public InvaderEscalation Escalation { get; }
 
+        /// <summary>Se os invasores com habilidade (Guardião, Corredor, Necroapóstolo, Flagelo) entram nas ondas.</summary>
+        public bool ExtraInvaders { get; }
+
+        /// <summary>Vida do Rei Herege, o chefe final do turno 15 (0 = sem chefe final).</summary>
+        public int FinalBossHealth { get; }
+
+        /// <summary>Qual chefe aparece no turno 10 (0 Inquisidor, 1 Profeta do Tempo, 2 Colosso Carmesim).</summary>
+        public int MidBoss { get; }
+
         /// <summary>Cria a pressão.</summary>
-        public InvasionPressure(int cultistGrowth, int cultistEvery, int colossusEvery, int profanerEvery, InvaderEscalation escalation)
+        public InvasionPressure(int cultistGrowth, int cultistEvery, int colossusEvery, int profanerEvery, InvaderEscalation escalation,
+            bool extraInvaders = false, int finalBossHealth = 0, int midBoss = 0)
         {
             CultistGrowth = cultistGrowth;
             CultistEvery = cultistEvery;
             ColossusEvery = colossusEvery;
             ProfanerEvery = profanerEvery;
             Escalation = escalation;
+            ExtraInvaders = extraInvaders;
+            FinalBossHealth = finalBossHealth;
+            MidBoss = midBoss;
         }
+
+        /// <summary>Mesma pressão com outro chefe no turno 10.</summary>
+        /// <param name="midBoss">Número do chefe.</param>
+        /// <returns>Cópia com o chefe trocado.</returns>
+        public InvasionPressure WithMidBoss(int midBoss) =>
+            new InvasionPressure(CultistGrowth, CultistEvery, ColossusEvery, ProfanerEvery, Escalation, ExtraInvaders, FinalBossHealth, midBoss);
     }
 }

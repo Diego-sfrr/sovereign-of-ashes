@@ -90,7 +90,21 @@ namespace SovereignOfAshes.Session
             { "void_colossus", "\"Reconheço o chamado. Reconheço a ruína.\"" },
             { "profaner", "\"Carne é só carne. Fogo é só combustão. Vejam o milagre evaporar no sal.\"" },
             { "heretic_herald", "\"Olhem para cima. O Trono está vazio, e o sol que adoram é uma boca.\"" },
-            { "inquisitor", "\"" + InquisitorArrives + "\"" }
+            { "inquisitor", "\"" + InquisitorArrives + "\"" },
+            { "profane_guardian", "\"A carne é escudo. A dúvida é armadura. Tente me ferir com a sua fé.\"" },
+            { "heretic_runner", "\"Nenhuma muralha segura quem já deixou de acreditar nela.\"" },
+            { "necro_apostle", "\"Os mortos não pedem licença. Levantem-se: ainda há trabalho.\"" },
+            { "blast_scourge", "\"Se eu cair, levo o seu altar comigo.\"" },
+            { "time_prophet", "\"Eu já vi esta ronda. Eu já a girei. Gira de novo.\"" },
+            { "crimson_colossus", "\"Vermelho é a única cor que a cinza não apaga.\"" },
+            { "heretic_king", "\"Ajoelhe-se, pequeno Eco. O Trono vazio já tem dono, e não é você.\"" }
+        };
+
+        private static readonly Dictionary<string, string> LastWords = new Dictionary<string, string>
+        {
+            { "time_prophet", "\"Eu não... vi... este fim.\"" },
+            { "crimson_colossus", "\"O vermelho... escorre. E a cinza... fica.\"" },
+            { "heretic_king", "\"Um trono vazio não pertence a ninguém. Nem a você, pequeno deus.\"" }
         };
 
         private static readonly string[] Defeats =
@@ -140,6 +154,15 @@ namespace SovereignOfAshes.Session
         /// </summary>
         /// <param name="invaderId">Id do invasor.</param>
         /// <returns>A fala, ou vazio se o tipo não tem fala.</returns>
+        /// <summary>Últimas palavras de um chefe ao morrer (vazio se ele não tiver).</summary>
+        /// <param name="invaderId">Id do invasor.</param>
+        /// <returns>Frase, ou texto vazio.</returns>
+        public static string BossLastWords(string invaderId) =>
+            invaderId != null && LastWords.TryGetValue(invaderId, out string text) ? text : string.Empty;
+
+        /// <summary>Fala de um invasor quando surge pela primeira vez (vazio se não tiver).</summary>
+        /// <param name="invaderId">Id do invasor.</param>
+        /// <returns>Frase, ou texto vazio.</returns>
         public static string InvaderBark(string invaderId) =>
             invaderId != null && Barks.TryGetValue(invaderId, out string text) ? text : string.Empty;
 

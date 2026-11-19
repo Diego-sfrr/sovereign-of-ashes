@@ -18,6 +18,13 @@ namespace SovereignOfAshes.Invaders
         private readonly Dictionary<int, IInvaderDefinition> _profaners = new Dictionary<int, IInvaderDefinition>();
         private readonly Dictionary<int, IInvaderDefinition> _heralds = new Dictionary<int, IInvaderDefinition>();
         private readonly Dictionary<int, IInvaderDefinition> _inquisitors = new Dictionary<int, IInvaderDefinition>();
+        private readonly Dictionary<int, IInvaderDefinition> _guardians = new Dictionary<int, IInvaderDefinition>();
+        private readonly Dictionary<int, IInvaderDefinition> _runners = new Dictionary<int, IInvaderDefinition>();
+        private readonly Dictionary<int, IInvaderDefinition> _scourges = new Dictionary<int, IInvaderDefinition>();
+        private readonly Dictionary<int, IInvaderDefinition> _necros = new Dictionary<int, IInvaderDefinition>();
+        private readonly Dictionary<int, IInvaderDefinition> _prophets = new Dictionary<int, IInvaderDefinition>();
+        private readonly Dictionary<int, IInvaderDefinition> _crimsons = new Dictionary<int, IInvaderDefinition>();
+        private readonly Dictionary<int, IInvaderDefinition> _kings = new Dictionary<int, IInvaderDefinition>();
 
         /// <summary>Quantos Cultistas surgem no turno (sem a orda).</summary>
         /// <param name="turnNumber">Turno (começa em 1).</param>
@@ -73,7 +80,50 @@ namespace SovereignOfAshes.Invaders
             if (turnNumber >= 10 && turnNumber % 10 == 0)
             {
                 orders.Add(new InvaderSpawnOrder(Get(_inquisitors, tier, t =>
-                    new SimpleInvaderDefinition("inquisitor", "Inquisidor Cinzento", 20 + t * 8, 4 + t / 2, 5, rationalityPerTurn: 1 + t / 3)), 1));
+                    new SimpleInvaderDefinition("inquisitor", "Inquisidor Cinzento", 20 + t * 8, 4 + t / 2, 5, rationalityPerTurn: 1 + t / 3, isBoss: true)), 1));
+            }
+
+            // Invasores com habilidade e chefes extras: a variedade cresce junto com a pressão.
+            if (turnNumber >= 7 && (turnNumber - 7) % 4 == 0)
+            {
+                orders.Add(new InvaderSpawnOrder(Get(_guardians, tier, t =>
+                    new SimpleInvaderDefinition("profane_guardian", "Guardião Profano", 10 + t * 2, 1 + t / 3, 2, damageReduction: 2 + t / 4)), 1 + (turnNumber - 7) / 16));
+            }
+
+            if (turnNumber >= 8 && (turnNumber - 8) % 3 == 0)
+            {
+                orders.Add(new InvaderSpawnOrder(Get(_runners, tier, t =>
+                    new SimpleInvaderDefinition("heretic_runner", "Corredor Herege", 4 + t, 2 + t / 3, 2, ignoresBarriers: true)), 1 + (turnNumber - 8) / 12));
+            }
+
+            if (turnNumber >= 11 && (turnNumber - 11) % 4 == 0)
+            {
+                orders.Add(new InvaderSpawnOrder(Get(_scourges, tier, t =>
+                    new SimpleInvaderDefinition("blast_scourge", "Flagelo Explosivo", 6 + t, 3 + t / 3, 2, explodeDamage: 2 + t / 3)), 1 + (turnNumber - 11) / 12));
+            }
+
+            if (turnNumber >= 12 && (turnNumber - 12) % 6 == 0)
+            {
+                orders.Add(new InvaderSpawnOrder(Get(_necros, tier, t =>
+                    new SimpleInvaderDefinition("necro_apostle", "Necroapóstolo", 8 + t * 2, 1 + t / 3, 3, healsRing: 2 + t / 3)), 1));
+            }
+
+            if (turnNumber >= 20 && turnNumber % 20 == 0)
+            {
+                orders.Add(new InvaderSpawnOrder(Get(_prophets, tier, t =>
+                    new SimpleInvaderDefinition("time_prophet", "Profeta do Tempo", 26 + t * 8, 3 + t / 2, 5, rotatesMiddleRing: true, isBoss: true)), 1));
+            }
+
+            if (turnNumber >= 25 && (turnNumber - 25) % 20 == 0)
+            {
+                orders.Add(new InvaderSpawnOrder(Get(_crimsons, tier, t =>
+                    new SimpleInvaderDefinition("crimson_colossus", "Colosso Carmesim", 32 + t * 8, 4 + t / 2, 5, corruptsElements: true, isBoss: true)), 1));
+            }
+
+            if (turnNumber >= 30 && turnNumber % 30 == 0)
+            {
+                orders.Add(new InvaderSpawnOrder(Get(_kings, tier, t =>
+                    new SimpleInvaderDefinition("heretic_king", "Rei Herege", 40 + t * 10, 5 + t / 2, 8, rationalityPerTurn: 2 + t / 4, isBoss: true)), 1));
             }
 
             return orders;

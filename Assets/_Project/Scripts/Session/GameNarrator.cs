@@ -67,6 +67,9 @@ namespace SovereignOfAshes.Session
             _session.TraitsPhase.ElementCorrupted += OnElementCorrupted;
             _session.RingControl.Used += OnRingControlUsed;
             _session.TraitsPhase.RationalityPushed += OnRationalityPushed;
+            _session.TraitsPhase.RingHealed += OnRingHealed;
+            _session.TraitsPhase.MiddleRingTurned += OnMiddleRingTurned;
+            _session.DeathTraits.Exploded += OnExploded;
             _session.Invaders.InvaderSpawned += OnInvaderSpawned;
             _session.Invaders.InvaderSlain += OnInvaderSlain;
             _session.Bounty.BountyGranted += OnBounty;
@@ -94,6 +97,9 @@ namespace SovereignOfAshes.Session
             _session.TraitsPhase.ElementCorrupted -= OnElementCorrupted;
             _session.RingControl.Used -= OnRingControlUsed;
             _session.TraitsPhase.RationalityPushed -= OnRationalityPushed;
+            _session.TraitsPhase.RingHealed -= OnRingHealed;
+            _session.TraitsPhase.MiddleRingTurned -= OnMiddleRingTurned;
+            _session.DeathTraits.Exploded -= OnExploded;
             _session.Invaders.InvaderSpawned -= OnInvaderSpawned;
             _session.Invaders.InvaderSlain -= OnInvaderSlain;
             _session.Bounty.BountyGranted -= OnBounty;
@@ -218,6 +224,19 @@ namespace SovereignOfAshes.Session
         private void OnRationalityPushed(InvaderEntity invader, int amount) =>
             Write($"{invader.Name} semeia dúvida: +{amount} de Racionalidade nas civilizações.", LogTone.Bad);
 
+        private void OnRingHealed(InvaderEntity healer, int count, int amount) =>
+            Write($"{healer.Name} curou {count} invasor(es) do anel (+{amount} de vida cada).", LogTone.Bad);
+
+        private void OnMiddleRingTurned(InvaderEntity invader) =>
+            Write($"{invader.Name} girou o anel da Civilização: o tabuleiro se embaralhou.", LogTone.Bad);
+
+        private void OnExploded(InvaderEntity invader, int victims, bool destroyedElement)
+        {
+            string hit = victims > 0 ? $" e feriu {victims} invasor(es) vizinho(s)" : string.Empty;
+            string element = destroyedElement ? " Um elemento foi destruído no setor." : string.Empty;
+            Write($"{invader.Name} explodiu{hit}.{element}", LogTone.Highlight);
+        }
+
         private void OnSpawnOverflow(IInvaderDefinition definition, int missing) =>
             Write($"Os Ermos estão lotados: {missing}x {definition.DisplayName} não surgiram.", LogTone.Info);
 
@@ -246,6 +265,15 @@ namespace SovereignOfAshes.Session
             if (invader.Definition.Id == "inquisitor")
             {
                 Write($"{invader.Name}: \"" + Story.InquisitorDies + "\"", LogTone.Highlight);
+            }
+            else
+            {
+                string last = Story.BossLastWords(invader.Definition.Id);
+
+                if (last.Length > 0)
+                {
+                    Write($"{invader.Name}: {last}", LogTone.Highlight);
+                }
             }
         }
 

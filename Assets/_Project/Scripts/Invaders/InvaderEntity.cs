@@ -53,7 +53,16 @@ namespace SovereignOfAshes.Invaders
         }
 
         /// <inheritdoc />
-        public void TakeDamage(int amount) => _stats.TakeDamage(amount);
+        /// <summary>Setor em que o invasor estava ao morrer (o setor atual vira nulo quando ele sai do tabuleiro).</summary>
+        public TectonicSector LastSector { get; internal set; }
+
+        public void TakeDamage(int amount)
+        {
+            int reduction = Definition.DamageReduction();
+
+            // Armadura: cada golpe perde `reduction`, mas todo golpe causa pelo menos 1.
+            _stats.TakeDamage(amount > 0 && reduction > 0 ? Math.Max(1, amount - reduction) : amount);
+        }
 
         /// <inheritdoc />
         public void Heal(int amount) => _stats.Heal(amount);

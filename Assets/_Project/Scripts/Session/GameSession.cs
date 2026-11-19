@@ -92,6 +92,9 @@ namespace SovereignOfAshes.Session
         /// <summary>Fase das habilidades dos invasores (Profanador, Arauto, Inquisidor).</summary>
         public InvaderTraitsPhase TraitsPhase { get; }
 
+        /// <summary>Habilidades de morte dos invasores (a explosão do Flagelo).</summary>
+        public InvaderDeathTraits DeathTraits { get; }
+
         /// <summary>Ciclo de turnos.</summary>
         public TurnSystem Turns { get; }
 
@@ -161,6 +164,8 @@ namespace SovereignOfAshes.Session
                 config.ElementEffects,
                 new ElementEffectServices(Board, Invaders, Combat, DivineCore, _civilizations, FaithIncome));
 
+            DeathTraits = new InvaderDeathTraits(Invaders, Board, Combat);
+
             var services = new CardPlayServices(Board, Alchemy, Invaders, Combat, DivineCore, _civilizations, Faith);
             Cards = new CardResolver(services, Faith);
             Deck = new CardDeck(config.StartingDeck, config.HandSize, deckRandom);
@@ -173,7 +178,7 @@ namespace SovereignOfAshes.Session
             IncomePhase = new FaithIncomePhase(FaithIncome, _civilizations);
             CivilizationPhase = new CivilizationPhase(_civilizations, Combat, DivineCore, Invaders, config.RationalityGrowthPerTurn);
             AdvancePhase = new InvaderAdvancePhase(Invaders, Board, Combat, DivineCore, ElementEffects);
-            TraitsPhase = new InvaderTraitsPhase(Invaders, _civilizations);
+            TraitsPhase = new InvaderTraitsPhase(Invaders, _civilizations, Board);
             SpawnPhase = new InvaderSpawnPhase(Invaders, Board, InvasionPlanner, spawnRandom);
 
             Turns = new TurnSystem(new ITurnPhase[]
@@ -256,6 +261,7 @@ namespace SovereignOfAshes.Session
             _narrator.Dispose();
             Rewards.Dispose();
             Bounty.Dispose();
+            DeathTraits.Dispose();
             _disposed = true;
         }
     }

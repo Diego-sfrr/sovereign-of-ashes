@@ -68,11 +68,11 @@ namespace SovereignOfAshes.Session
             switch (difficulty)
             {
                 case Difficulty.Easy:
-                    return new InvasionPressure(1, 3, 3, 4, InvaderEscalation.None);
+                    return new InvasionPressure(1, 3, 3, 4, InvaderEscalation.None, extraInvaders: false, finalBossHealth: 30);
                 case Difficulty.Hard:
-                    return new InvasionPressure(4, 3, 2, 2, new InvaderEscalation(turnsPerTier: 3, healthPerTier: 2, tiersPerAttack: 2));
+                    return new InvasionPressure(4, 3, 2, 2, new InvaderEscalation(turnsPerTier: 3, healthPerTier: 2, tiersPerAttack: 2), extraInvaders: true, finalBossHealth: 46);
                 default:
-                    return new InvasionPressure(3, 3, 2, 3, new InvaderEscalation(turnsPerTier: 4, healthPerTier: 1, tiersPerAttack: 2));
+                    return new InvasionPressure(3, 3, 2, 3, new InvaderEscalation(turnsPerTier: 4, healthPerTier: 1, tiersPerAttack: 2), extraInvaders: true, finalBossHealth: 40);
             }
         }
 
@@ -83,8 +83,9 @@ namespace SovereignOfAshes.Session
         /// <param name="difficulty">Dificuldade.</param>
         /// <param name="replaceFaith">Se a economia de Fé pode ser trocada (falso quando o jogador configurou a dele).</param>
         /// <param name="replaceInvasion">Se as ondas podem ser trocadas (falso quando o jogador configurou as dele).</param>
+        /// <param name="midBoss">Chefe do turno 10 (0 Inquisidor, 1 Profeta do Tempo, 2 Colosso Carmesim).</param>
         /// <exception cref="ArgumentNullException">Se <paramref name="config"/> for nula.</exception>
-        public static void Apply(GameSessionConfig config, Difficulty difficulty, bool replaceFaith = true, bool replaceInvasion = true)
+        public static void Apply(GameSessionConfig config, Difficulty difficulty, bool replaceFaith = true, bool replaceInvasion = true, int midBoss = 0)
         {
             if (config == null)
             {
@@ -102,7 +103,7 @@ namespace SovereignOfAshes.Session
 
             if (replaceInvasion)
             {
-                config.InvasionPlanner = DefaultContent.CreateInvasionPlanner(Pressure(difficulty));
+                config.InvasionPlanner = DefaultContent.CreateInvasionPlanner(Pressure(difficulty).WithMidBoss(midBoss));
             }
         }
     }

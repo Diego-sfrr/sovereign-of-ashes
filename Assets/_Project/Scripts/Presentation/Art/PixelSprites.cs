@@ -774,7 +774,10 @@ namespace SovereignOfAshes.Presentation.Art
         private static readonly Dictionary<string, string> Invaders = new Dictionary<string, string>
         {
             { "ash_cultist", "cultist" }, { "void_colossus", "colossus" },
-            { "profaner", "cultist" }, { "heretic_herald", "cultist" }, { "inquisitor", "colossus" }
+            { "profaner", "cultist" }, { "heretic_herald", "cultist" }, { "inquisitor", "colossus" },
+            { "profane_guardian", "colossus" }, { "heretic_runner", "cultist" }, { "necro_apostle", "cultist" },
+            { "blast_scourge", "cultist" }, { "time_prophet", "colossus" }, { "crimson_colossus", "colossus" },
+            { "heretic_king", "colossus" }
         };
 
         private static readonly Dictionary<string, string> Cards = new Dictionary<string, string>
@@ -833,6 +836,13 @@ namespace SovereignOfAshes.Presentation.Art
                 case "profaner": return new UnityEngine.Color(0.78f, 0.55f, 1f, 1f);
                 case "heretic_herald": return new UnityEngine.Color(1f, 0.86f, 0.45f, 1f);
                 case "inquisitor": return new UnityEngine.Color(1f, 0.55f, 0.5f, 1f);
+                case "profane_guardian": return new UnityEngine.Color(0.6f, 0.75f, 1f, 1f);
+                case "heretic_runner": return new UnityEngine.Color(0.6f, 1f, 0.7f, 1f);
+                case "necro_apostle": return new UnityEngine.Color(0.7f, 1f, 0.9f, 1f);
+                case "blast_scourge": return new UnityEngine.Color(1f, 0.7f, 0.35f, 1f);
+                case "time_prophet": return new UnityEngine.Color(0.9f, 0.85f, 0.5f, 1f);
+                case "crimson_colossus": return new UnityEngine.Color(1f, 0.35f, 0.35f, 1f);
+                case "heretic_king": return new UnityEngine.Color(0.85f, 0.5f, 1f, 1f);
                 default: return UnityEngine.Color.white;
             }
         }

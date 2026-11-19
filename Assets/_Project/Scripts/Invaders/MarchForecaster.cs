@@ -147,7 +147,7 @@ namespace SovereignOfAshes.Invaders
             var targetRing = (RingType)(ringIndex - 1);
             int plate = ModularMath.Wrap(position - offsets[ringIndex - 1], n);
             TectonicSector target = _board.GetRing(targetRing).Sectors[plate];
-            bool blocked = _wouldBlock != null && _wouldBlock(invader, target);
+            bool blocked = _wouldBlock != null && !invader.Definition.IgnoresBarriers() && _wouldBlock(invader, target);
 
             if (!blocked)
             {

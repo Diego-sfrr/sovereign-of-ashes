@@ -367,16 +367,16 @@ namespace SovereignOfAshes.Presentation
                 { "Depois do seu turno", "Os anéis giram, sua civilização combate e a Razão dela sobe, os invasores marcham um anel para dentro e novas ondas surgem. As setas no tabuleiro mostram para onde cada invasor vai." },
                 { "Invasores", "Eles entram pelo setor de mesmo número no anel seguinte (os números ficam na borda do tabuleiro). Ao chegar ao Santuário Interno, atacam o Núcleo todo turno. Cartas de ataque e a sua civilização os derrubam; cada um destruído rende Fé." },
                 { "Razão e heresia", "Se a Razão da civilização chegar ao máximo, ela vira herege e passa a atacar o Núcleo. Cartas como o Sermão a reduzem." },
+                { "Modo infinito", "No botão MODO INFINITO as ondas nunca acabam: chegam hordas cada vez maiores e mais fortes, com a dificuldade Difícil fixa. Não existe vitória; o objetivo é bater o seu recorde de turnos." },
                 { "Civilizações e anéis", "Antes do pacto você escolhe sua civilização: Filhos da Cinza, Forjadores do Abismo, Flagelantes do Eclipse ou Eremitas do Tempo, cada uma com vantagem e preço. Durante a partida, a Intervenção Divina (painel ao lado do tabuleiro) gasta Fé para girar um anel 1 casa ou congelá-lo (ele ignora a próxima rotação): 1 por turno." },
                 { "Oferendas e Pactos", "Antes de cada partida você escolhe um Pacto: uma regra especial com vantagem e preço. Durante a partida, a cada 3 turnos surge uma Oferenda Divina: escolha 1 de 3 cartas para o baralho (ou recuse e ganhe Fé). Cartas como Giro Divino giram um anel inteiro e reposicionam os invasores." },
-                { "Novos invasores", "O Profanador destrói o elemento do setor em que chega. O Arauto Herege e o Inquisidor (chefe do turno 10) somam Razão às civilizações a cada turno: mate-os antes que a heresia chegue." },
-                { "Modo infinito", "No botão MODO INFINITO as ondas nunca acabam: chegam hordas cada vez maiores e mais fortes, com a dificuldade Difícil fixa. Não existe vitória; o objetivo é bater o seu recorde de turnos." },
+                { "Novos invasores", "Cada invasor novo pede uma resposta: o Profanador destrói o elemento do setor; o Guardião reduz cada golpe em 2; o Corredor ignora barreiras; o Necroapóstolo cura o anel; o Flagelo explode ao morrer. No turno 10 vem um chefe sorteado (Inquisidor, Profeta do Tempo ou Colosso Carmesim) e, no 15, o Rei Herege: derrube-o antes que ele alcance o Núcleo." },
                 { "Alquimia", "As cartas Infundir criam conceitos; jogar um conceito sobre outro os funde em estruturas e seres que agem sozinhos (Forja, Golem, Santo, Espectro...). A ordem importa: aperte G para ver as receitas no Grimório." }
             };
 
             // Duas colunas: as seções cabem sem passar do painel.
             float columnWidth = (panel.width - 150f) * 0.5f;
-            int perColumn = (sections.GetLength(0) + 1) / 2;
+            int perColumn = 6;
             float top = panel.y + 92f;
             float y = top;
 

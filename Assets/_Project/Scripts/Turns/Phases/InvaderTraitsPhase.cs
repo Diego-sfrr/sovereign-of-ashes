@@ -16,12 +16,19 @@ namespace SovereignOfAshes.Turns.Phases
     {
         private readonly InvaderRoster _roster;
         private readonly IReadOnlyCollection<CivilizationEntity> _civilizations;
+        private readonly TectonicBoard _board;
 
         /// <summary>Disparado quando um Profanador destrói um elemento. Parâmetros: invasor, setor, elemento destruído.</summary>
         public event Action<InvaderEntity, TectonicSector, ISectorContent> ElementCorrupted;
 
         /// <summary>Disparado quando um invasor soma Racionalidade às civilizações. Parâmetros: invasor, quantidade.</summary>
         public event Action<InvaderEntity, int> RationalityPushed;
+
+        /// <summary>Disparado quando um invasor cura os aliados do anel (invasor, quantos foram curados, quanto cada um).</summary>
+        public event Action<InvaderEntity, int, int> RingHealed;
+
+        /// <summary>Disparado quando um invasor gira o anel do meio.</summary>
+        public event Action<InvaderEntity> MiddleRingTurned;
 
         /// <inheritdoc />
         public string Name => "Habilidades dos Invasores";
@@ -32,8 +39,9 @@ namespace SovereignOfAshes.Turns.Phases
         /// <param name="roster">Invasores.</param>
         /// <param name="civilizations">Civilizações (a coleção é lida a cada execução).</param>
         /// <exception cref="ArgumentNullException">Se algum argumento for nulo.</exception>
-        public InvaderTraitsPhase(InvaderRoster roster, IReadOnlyCollection<CivilizationEntity> civilizations)
+        public InvaderTraitsPhase(InvaderRoster roster, IReadOnlyCollection<CivilizationEntity> civilizations, TectonicBoard board = null)
         {
+            _board = board;
             _roster = roster ?? throw new ArgumentNullException(nameof(roster));
             _civilizations = civilizations ?? throw new ArgumentNullException(nameof(civilizations));
         }
@@ -53,6 +61,34 @@ namespace SovereignOfAshes.Turns.Phases
                     TectonicSector sector = invader.Sector;
                     ISectorContent destroyed = sector.Clear();
                     ElementCorrupted?.Invoke(invader, sector, destroyed);
+                }
+
+                int heal = invader.Definition.HealsRing();
+
+                if (heal > 0)
+                {
+                    int healed = 0;
+
+                    foreach (InvaderEntity ally in new List<InvaderEntity>(_roster.Invaders))
+                    {
+                        if (!ReferenceEquals(ally, invader) && !ally.IsDead && ally.Sector != null
+                            && ally.Sector.Ring == invader.Sector.Ring && ally.CurrentHealth < ally.MaxHealth)
+                        {
+                            ally.Heal(heal);
+                            healed++;
+                        }
+                    }
+
+                    if (healed > 0)
+                    {
+                        RingHealed?.Invoke(invader, healed, heal);
+                    }
+                }
+
+                if (invader.Definition.RotatesMiddleRing() && _board != null)
+                {
+                    _board.RotateRing(RingType.MiddleCivilization, 1, RotationDirection.Clockwise);
+                    MiddleRingTurned?.Invoke(invader);
                 }
 
                 int pressure = invader.Definition.RationalityPerTurn();

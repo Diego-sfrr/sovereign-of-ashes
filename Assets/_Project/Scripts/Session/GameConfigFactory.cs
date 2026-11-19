@@ -44,9 +44,13 @@ namespace SovereignOfAshes.Session
 
             bool endless = settings.Mode == GameMode.Endless;
 
+            // O chefe do turno 10 é sorteado por partida; com semente fixa é sempre o mesmo (a partida se repete).
+            int midBoss = new Random(settings.Seed != 0 ? unchecked(settings.Seed * 31 + 7) : Environment.TickCount)
+                .Next(DefaultContent.MidBossCount);
+
             // No modo infinito a dificuldade é sempre a mais dura (hardcore).
             DifficultyPresets.Apply(config, endless ? Difficulty.Hard : settings.Difficulty,
-                replaceFaith, replaceInvasion: replaceInvasion && !endless);
+                replaceFaith, replaceInvasion: replaceInvasion && !endless, midBoss: midBoss);
 
             // A civilização escolhida troca a padrão (vem antes do pacto).
             CivilizationCatalog.Find(settings.CivilizationId)?.Apply(config);
