@@ -2,6 +2,10 @@
 
 Roguelike deckbuilder de estratégia divina e fantasia sombria, feito em Unity (C#).
 
+> **Como foi feito:** o código foi gerado com IA (Claude, da Anthropic), e as artes com Gemini. A ideia do jogo, as
+> regras, a história e as decisões de design são minhas, e eu testei e ajustei cada versão jogando. É um experimento
+> de desenvolvimento assistido por IA, não um projeto em que escrevi o código à mão.
+
 Arquitetura, diagramas e regras: [ARQUITETURA.md](ARQUITETURA.md).
 
 ## Como jogar (2 minutos de configuração)
