@@ -844,6 +844,12 @@ namespace SovereignOfAshes.Presentation
             {
                 _bootstrapper.CloseSession();
             }
+
+            // Convite discreto, abaixo da faixa: só abre o navegador se a pessoa clicar.
+            if (MenuButton(new Rect(width * 0.5f - 150f, y0 + 396f, 300f, 46f), "APOIE O CRIADOR"))
+            {
+                Application.OpenURL(SupportInfo.DonationUrl);
+            }
         }
     }
 }

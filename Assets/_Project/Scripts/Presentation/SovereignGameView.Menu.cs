@@ -24,6 +24,7 @@ namespace SovereignOfAshes.Presentation
             Achievements,
             Covenant,
             Civilization,
+            Support,
             Playing,
             Paused
         }
@@ -57,7 +58,7 @@ namespace SovereignOfAshes.Presentation
 
         private GUIStyle HintStyle => _hintStyle ?? (_hintStyle = new GUIStyle(_theme.Small) { fontSize = 16, wordWrap = true });
 
-        private bool IsMenuScreen => _uiScreen == UiScreen.Menu || _uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Settings || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization;
+        private bool IsMenuScreen => _uiScreen == UiScreen.Menu || _uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Settings || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization || _uiScreen == UiScreen.Support;
 
         // ------------------------------------------------------------------ Ciclo de vida
 
@@ -147,6 +148,7 @@ namespace SovereignOfAshes.Presentation
                 case "achievements": _uiScreen = UiScreen.Achievements; break;
                 case "covenant": OpenCovenantChoice(GameMode.Standard); break;
                 case "civilization": OpenCivilizationChoice(GameMode.Standard); break;
+                case "support": _uiScreen = UiScreen.Support; break;
                 default: _uiScreen = UiScreen.Menu; break;
             }
         }
@@ -236,6 +238,7 @@ namespace SovereignOfAshes.Presentation
                 case UiScreen.Achievements: DrawAchievements(width, height); break;
                 case UiScreen.Covenant: DrawCovenantChoice(width, height); break;
                 case UiScreen.Civilization: DrawCivilizationChoice(width, height); break;
+                case UiScreen.Support: DrawSupport(width, height); break;
                 default: DrawMainMenu(width, height); break;
             }
         }
@@ -255,7 +258,7 @@ namespace SovereignOfAshes.Presentation
                 {
                     LeaveSettings();
                 }
-                else if (_uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization)
+                else if (_uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization || _uiScreen == UiScreen.Support)
                 {
                     _uiScreen = UiScreen.Menu;
                 }
@@ -325,9 +328,9 @@ namespace SovereignOfAshes.Presentation
             }
 
             string trophies = $"CONQUISTAS {_achievements.UnlockedCount}/{AchievementCatalog.All.Count}";
-            string[] labels = { "COMO JOGAR", trophies, "CONFIGURAÇÕES", "SAIR" };
-            float[] widths = { 190f, 250f, 220f, 130f };
-            float x = cx - (190f + 250f + 220f + 130f + 3f * 12f) * 0.5f;
+            string[] labels = { "COMO JOGAR", trophies, "CONFIGURAÇÕES", "APOIE O CRIADOR", "SAIR" };
+            float[] widths = { 190f, 250f, 220f, 270f, 130f };
+            float x = cx - (190f + 250f + 220f + 270f + 130f + 4f * 12f) * 0.5f;
 
             for (int i = 0; i < labels.Length; i++)
             {
@@ -338,6 +341,7 @@ namespace SovereignOfAshes.Presentation
                         case 0: _uiScreen = UiScreen.HowToPlay; break;
                         case 1: _uiScreen = UiScreen.Achievements; break;
                         case 2: GoToSettings(); break;
+                        case 3: _uiScreen = UiScreen.Support; break;
                         default: Application.Quit(); break;
                     }
                 }
@@ -350,6 +354,48 @@ namespace SovereignOfAshes.Presentation
                 $"Dificuldade: {DifficultyPresets.Name(_settings.Difficulty)}     ·     Semente: {seed}", _theme.Centered, GuiTheme.TextDim);
             _theme.ShadowText(new Rect(0f, height - 62f, width, 26f),
                 "Dentro da partida:  Esc pausa   ·   G abre o Grimório   ·   passe o mouse numa carta para ampliá-la", _theme.Centered, GuiTheme.TextDim);
+        }
+
+        private float _copiedUntil;
+
+        private void DrawSupport(float width, float height)
+        {
+            var panel = new Rect((width - 900f) * 0.5f, (height - 500f) * 0.5f, 900f, 500f);
+            _theme.Panel(panel);
+            _theme.ShadowText(new Rect(panel.x, panel.y + 18f, panel.width, 44f), "Apoie o criador", _theme.Heading, GuiTheme.Gold);
+            _theme.Divider(panel.x + 60f, panel.y + 70f, panel.width - 120f);
+
+            const string message =
+                "Sovereign of Ashes é feito por uma pessoa só, com carinho e muitas noites de cinza.\n\n" +
+                "O jogo é gratuito e vai continuar sendo. Se você curtiu e quiser ajudar a trazer novas civilizações, " +
+                "invasores, chefes e cartas, pode deixar um apoio de qualquer valor pelo LivePix (Pix). " +
+                "É totalmente opcional: jogar não depende disso.";
+
+            var content = new GUIContent(message);
+            float textWidth = panel.width - 140f;
+            float textHeight = BodyStyle.CalcHeight(content, textWidth);
+            GUI.Label(new Rect(panel.x + 70f, panel.y + 96f, textWidth, textHeight), content, BodyStyle);
+
+            float buttonsY = panel.y + 96f + textHeight + 30f;
+            _theme.ShadowText(new Rect(panel.x, buttonsY, panel.width, 30f), SupportInfo.DisplayUrl, _theme.Centered, GuiTheme.Gold);
+
+            if (MenuButton(new Rect(panel.center.x - 330f, buttonsY + 46f, 320f, MenuButtonHeight), "ABRIR NO NAVEGADOR", primary: true))
+            {
+                Application.OpenURL(SupportInfo.DonationUrl);
+            }
+
+            bool justCopied = Time.unscaledTime < _copiedUntil;
+
+            if (MenuButton(new Rect(panel.center.x + 10f, buttonsY + 46f, 320f, MenuButtonHeight), justCopied ? "LINK COPIADO!" : "COPIAR LINK"))
+            {
+                GUIUtility.systemCopyBuffer = SupportInfo.DonationUrl;
+                _copiedUntil = Time.unscaledTime + 2.5f;
+            }
+
+            if (MenuButton(new Rect(panel.center.x - 130f, panel.yMax - 84f, 260f, MenuButtonHeight), "VOLTAR"))
+            {
+                _uiScreen = UiScreen.Menu;
+            }
         }
 
         private void DrawHowToPlay(float width, float height)

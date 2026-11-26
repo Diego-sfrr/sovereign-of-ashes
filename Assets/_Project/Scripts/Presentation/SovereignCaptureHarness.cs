@@ -94,6 +94,9 @@ namespace SovereignOfAshes.Presentation
             _view.ShowScreenForCapture("achievements");
             yield return new WaitForSeconds(0.4f);
             yield return Capture("m5-conquistas");
+            _view.ShowScreenForCapture("support");
+            yield return new WaitForSeconds(0.4f);
+            yield return Capture("m8-apoio");
             _view.ShowScreenForCapture("menu");
             _view.StartGameForCapture(Array.IndexOf(Environment.GetCommandLineArgs(), "-sovereign-endless") >= 0);
             yield return new WaitForSeconds(2.5f);
