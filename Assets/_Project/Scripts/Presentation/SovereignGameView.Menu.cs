@@ -374,7 +374,7 @@ namespace SovereignOfAshes.Presentation
                 "1. Clique em COPIAR RELATÓRIO: ele guarda versão, dificuldade, civilização, pacto e semente da sua " +
                 "última partida (nada pessoal, e nada é enviado sozinho).\n" +
                 (SupportInfo.HasFeedbackChannel
-                    ? "2. Clique em ABRIR O CANAL e cole o relatório na mensagem, contando o que aconteceu e o que você esperava."
+                    ? "2. Clique em ABRIR O FORMULÁRIO e cole o relatório lá, contando o que aconteceu e o que você esperava."
                     : "2. Cole o relatório numa mensagem para o criador, contando o que aconteceu e o que você esperava.");
 
             var content = new GUIContent(message);
@@ -397,7 +397,7 @@ namespace SovereignOfAshes.Presentation
 
             if (SupportInfo.HasFeedbackChannel)
             {
-                if (MenuButton(new Rect(panel.center.x + 10f, buttonsY, 320f, MenuButtonHeight), "ABRIR O CANAL", primary: true))
+                if (MenuButton(new Rect(panel.center.x + 10f, buttonsY, 320f, MenuButtonHeight), "ABRIR O FORMULÁRIO", primary: true))
                 {
                     Application.OpenURL(SupportInfo.FeedbackUrl);
                 }

@@ -11,8 +11,8 @@ namespace SovereignOfAshes.Session
         /// <summary>Link público da página de apoio do criador.</summary>
         public const string DonationUrl = "https://livepix.gg/pollus999";
 
-        /// <summary>Convite do canal do Discord para sugestões e bugs (vazio = botão desativado).</summary>
-        public const string FeedbackUrl = "";
+        /// <summary>Formulário do Google para sugestões e bugs (vazio = o botão de abrir some).</summary>
+        public const string FeedbackUrl = "https://docs.google.com/forms/d/e/1FAIpQLScYO6LQOAl58tqMVKHLAGdlPFv6XfQpdI3ZjQdzVLXOYtOnfQ/viewform";
 
         /// <summary>Endereço curto para mostrar na tela (sem o "https://").</summary>
         public static string DisplayUrl => DonationUrl.Replace("https://", string.Empty);
