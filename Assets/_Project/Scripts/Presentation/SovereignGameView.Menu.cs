@@ -25,6 +25,7 @@ namespace SovereignOfAshes.Presentation
             Covenant,
             Civilization,
             Support,
+            Feedback,
             Playing,
             Paused
         }
@@ -58,7 +59,7 @@ namespace SovereignOfAshes.Presentation
 
         private GUIStyle HintStyle => _hintStyle ?? (_hintStyle = new GUIStyle(_theme.Small) { fontSize = 16, wordWrap = true });
 
-        private bool IsMenuScreen => _uiScreen == UiScreen.Menu || _uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Settings || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization || _uiScreen == UiScreen.Support;
+        private bool IsMenuScreen => _uiScreen == UiScreen.Menu || _uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Settings || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization || _uiScreen == UiScreen.Support || _uiScreen == UiScreen.Feedback;
 
         // ------------------------------------------------------------------ Ciclo de vida
 
@@ -149,6 +150,7 @@ namespace SovereignOfAshes.Presentation
                 case "covenant": OpenCovenantChoice(GameMode.Standard); break;
                 case "civilization": OpenCivilizationChoice(GameMode.Standard); break;
                 case "support": _uiScreen = UiScreen.Support; break;
+                case "feedback": _uiScreen = UiScreen.Feedback; break;
                 default: _uiScreen = UiScreen.Menu; break;
             }
         }
@@ -239,6 +241,7 @@ namespace SovereignOfAshes.Presentation
                 case UiScreen.Covenant: DrawCovenantChoice(width, height); break;
                 case UiScreen.Civilization: DrawCivilizationChoice(width, height); break;
                 case UiScreen.Support: DrawSupport(width, height); break;
+                case UiScreen.Feedback: DrawFeedback(width, height); break;
                 default: DrawMainMenu(width, height); break;
             }
         }
@@ -258,7 +261,7 @@ namespace SovereignOfAshes.Presentation
                 {
                     LeaveSettings();
                 }
-                else if (_uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization || _uiScreen == UiScreen.Support)
+                else if (_uiScreen == UiScreen.HowToPlay || _uiScreen == UiScreen.Achievements || _uiScreen == UiScreen.Covenant || _uiScreen == UiScreen.Civilization || _uiScreen == UiScreen.Support || _uiScreen == UiScreen.Feedback)
                 {
                     _uiScreen = UiScreen.Menu;
                 }
@@ -328,9 +331,9 @@ namespace SovereignOfAshes.Presentation
             }
 
             string trophies = $"CONQUISTAS {_achievements.UnlockedCount}/{AchievementCatalog.All.Count}";
-            string[] labels = { "COMO JOGAR", trophies, "CONFIGURAÇÕES", "APOIE O CRIADOR", "SAIR" };
-            float[] widths = { 190f, 250f, 220f, 270f, 130f };
-            float x = cx - (190f + 250f + 220f + 270f + 130f + 4f * 12f) * 0.5f;
+            string[] labels = { "COMO JOGAR", trophies, "CONFIGURAÇÕES", "SUGESTÕES E BUGS", "APOIE O CRIADOR", "SAIR" };
+            float[] widths = { 170f, 230f, 210f, 250f, 250f, 110f };
+            float x = cx - (170f + 230f + 210f + 250f + 250f + 110f + 5f * 12f) * 0.5f;
 
             for (int i = 0; i < labels.Length; i++)
             {
@@ -341,7 +344,8 @@ namespace SovereignOfAshes.Presentation
                         case 0: _uiScreen = UiScreen.HowToPlay; break;
                         case 1: _uiScreen = UiScreen.Achievements; break;
                         case 2: GoToSettings(); break;
-                        case 3: _uiScreen = UiScreen.Support; break;
+                        case 3: _uiScreen = UiScreen.Feedback; break;
+                        case 4: _uiScreen = UiScreen.Support; break;
                         default: Application.Quit(); break;
                     }
                 }
@@ -357,6 +361,55 @@ namespace SovereignOfAshes.Presentation
         }
 
         private float _copiedUntil;
+
+        private void DrawFeedback(float width, float height)
+        {
+            var panel = new Rect((width - 900f) * 0.5f, (height - 560f) * 0.5f, 900f, 560f);
+            _theme.Panel(panel);
+            _theme.ShadowText(new Rect(panel.x, panel.y + 18f, panel.width, 44f), "Sugestões e bugs", _theme.Heading, GuiTheme.Gold);
+            _theme.Divider(panel.x + 60f, panel.y + 70f, panel.width - 120f);
+
+            string message =
+                "Achou um bug, uma carta forte demais ou tem uma ideia? Conte para o criador!\n\n" +
+                "1. Clique em COPIAR RELATÓRIO: ele guarda versão, dificuldade, civilização, pacto e semente da sua " +
+                "última partida (nada pessoal, e nada é enviado sozinho).\n" +
+                (SupportInfo.HasFeedbackChannel
+                    ? "2. Clique em ABRIR O CANAL e cole o relatório na mensagem, contando o que aconteceu e o que você esperava."
+                    : "2. Cole o relatório numa mensagem para o criador, contando o que aconteceu e o que você esperava.");
+
+            var content = new GUIContent(message);
+            float textWidth = panel.width - 140f;
+            float textHeight = BodyStyle.CalcHeight(content, textWidth);
+            GUI.Label(new Rect(panel.x + 70f, panel.y + 96f, textWidth, textHeight), content, BodyStyle);
+
+            float buttonsY = panel.y + 96f + textHeight + 40f;
+            bool copied = Time.unscaledTime < _reportCopiedUntil;
+
+            float copyX = SupportInfo.HasFeedbackChannel ? panel.center.x - 330f : panel.center.x - 160f;
+
+            if (MenuButton(new Rect(copyX, buttonsY, 320f, MenuButtonHeight), copied ? "RELATÓRIO COPIADO!" : "COPIAR RELATÓRIO", primary: !SupportInfo.HasFeedbackChannel))
+            {
+                int turn = _session != null ? _session.Turns.TurnNumber : 0;
+                string state = _session != null ? "em jogo" : "fora de partida";
+                GUIUtility.systemCopyBuffer = SupportInfo.BuildReport(Application.version, _bootstrapper.LastSettings, turn, state);
+                _reportCopiedUntil = Time.unscaledTime + 2.5f;
+            }
+
+            if (SupportInfo.HasFeedbackChannel)
+            {
+                if (MenuButton(new Rect(panel.center.x + 10f, buttonsY, 320f, MenuButtonHeight), "ABRIR O CANAL", primary: true))
+                {
+                    Application.OpenURL(SupportInfo.FeedbackUrl);
+                }
+            }
+
+            if (MenuButton(new Rect(panel.center.x - 130f, panel.yMax - 84f, 260f, MenuButtonHeight), "VOLTAR"))
+            {
+                _uiScreen = UiScreen.Menu;
+            }
+        }
+
+        private float _reportCopiedUntil;
 
         private void DrawSupport(float width, float height)
         {
