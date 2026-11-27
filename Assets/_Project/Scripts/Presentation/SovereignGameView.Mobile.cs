@@ -25,6 +25,45 @@ namespace SovereignOfAshes.Presentation
             forced |= url.IndexOf("mobile=1", StringComparison.OrdinalIgnoreCase) >= 0;
             _mobileUi = Application.isMobilePlatform || forced;
             GuiTheme.FontScale = _mobileUi ? MobileFontScale : 1f;
+
+            if (_mobileUi)
+            {
+                // 30 quadros por segundo bastam para um jogo de cartas e poupam bateria e temperatura.
+                Application.targetFrameRate = 30;
+                QualitySettings.vSyncCount = 0;
+            }
+        }
+
+        // Medidor de desempenho: no celular escreve no log, a cada 10 s, os quadros por segundo, o pior quadro e a memória.
+        private float _perfTime;
+        private int _perfFrames;
+        private float _perfWorst;
+        private int _perfGcStart;
+
+        private void TrackPerformance()
+        {
+            if (!_mobileUi)
+            {
+                return;
+            }
+
+            float delta = Time.unscaledDeltaTime;
+            _perfTime += delta;
+            _perfFrames++;
+            _perfWorst = Mathf.Max(_perfWorst, delta);
+
+            if (_perfTime < 10f)
+            {
+                return;
+            }
+
+            int gc = GC.CollectionCount(0);
+            Debug.Log($"[Perf] fps={_perfFrames / _perfTime:F1} piorQuadro={_perfWorst * 1000f:F0}ms gc0={gc - _perfGcStart} " +
+                      $"memoriaGerenciada={GC.GetTotalMemory(false) / (1024 * 1024)}MB tela={_uiScreen}");
+            _perfTime = 0f;
+            _perfFrames = 0;
+            _perfWorst = 0f;
+            _perfGcStart = gc;
         }
 
         /// <summary>Zoom da interface no celular, conforme a tela (telas de texto longo precisam de mais altura).</summary>

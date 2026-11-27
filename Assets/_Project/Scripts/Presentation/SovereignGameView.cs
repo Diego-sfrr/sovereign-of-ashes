@@ -295,6 +295,7 @@ namespace SovereignOfAshes.Presentation
 
         private void Update()
         {
+            TrackPerformance();
             if (_session == null || _board == null)
             {
                 return;
@@ -812,6 +813,12 @@ namespace SovereignOfAshes.Presentation
                 }
             }
 
+            if (_mobileUi)
+            {
+                // Sem mouse não existe "passar por cima": a prévia grande mostra a carta selecionada.
+                _hoveredCard = _selectedCard;
+            }
+
             DrawPiles(height);
 
             if (_forcedHoverCard >= 0 && _forcedHoverCard < hand.Count)
@@ -901,6 +908,15 @@ namespace SovereignOfAshes.Presentation
         {
             if (card.IsGlobal())
             {
+                if (_mobileUi && _selectedCard != handIndex)
+                {
+                    // No celular o primeiro toque só mostra a carta; o segundo toque joga (evita jogar sem ler).
+                    _selectedCard = handIndex;
+                    PlaySound(SoundId.CardSelect);
+                    ShowHint("Toque de novo na carta para jogá-la.");
+                    return;
+                }
+
                 CardPlayOutcome outcome = _session.Player.PlayFromHand(handIndex, null);
                 ShowHint(PlayerActionService.Describe(outcome));
                 _selectedCard = -1;
@@ -913,8 +929,8 @@ namespace SovereignOfAshes.Presentation
             {
                 PlaySound(SoundId.CardSelect);
                 ShowHint(card.RequiresInvader
-                    ? "Clique em um setor com invasor. Botão direito cancela."
-                    : "Clique em um setor destacado. Botão direito cancela.");
+                    ? (_mobileUi ? "Toque num setor com invasor. CANCELAR CARTA desiste." : "Clique em um setor com invasor. Botão direito cancela.")
+                    : (_mobileUi ? "Toque num setor destacado. CANCELAR CARTA desiste." : "Clique em um setor destacado. Botão direito cancela."));
             }
         }
 
