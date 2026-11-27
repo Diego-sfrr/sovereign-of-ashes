@@ -29,12 +29,20 @@ namespace SovereignOfAshes.Presentation
     public sealed partial class SovereignGameView : MonoBehaviour
     {
         private const float ReferenceHeight = 1080f;
-        private const float SidePanelWidth = 340f;
-        private const float TopBarHeight = 64f;
-        private const float HandAreaHeight = 290f;
         private const float CardWidth = 178f;
         private const float CardHeight = 240f;
-        private const float CardSpacing = 20f;
+
+        // Medidas do HUD: no celular tudo fica mais compacto (a tela é pequena e o dedo é grosso).
+        private float SidePanelWidth => _mobileUi ? 300f : 340f;
+        private float TopBarHeight => _mobileUi ? 56f : 64f;
+        private float HandAreaHeight => _mobileUi ? 232f : 290f;
+
+        /// <summary>Escala em que as cartas da mão são desenhadas (o layout interno da carta é sempre 178x240).</summary>
+        private float HandCardScale => _mobileUi ? 0.74f : 1f;
+
+        private float HandCardWidth => CardWidth * HandCardScale;
+        private float HandCardHeight => CardHeight * HandCardScale;
+        private float CardSpacing => _mobileUi ? 12f : 20f;
         private const float LineHeight = 22f;
         private const float LineStep = 24f;
         private const int LogLines = 24;
@@ -79,6 +87,9 @@ namespace SovereignOfAshes.Presentation
         private Vector3 _cameraBase;
         private float[] _visualOffsets;
         private float[] _targetOffsets;
+        private float _zoomStartX;
+        private float _zoomBaseY;
+        private float _zoomWidth;
         private int _selectedCard = -1;
         private int _hoveredCard = -1;
         private TectonicSector _hovered;
@@ -144,6 +155,7 @@ namespace SovereignOfAshes.Presentation
         {
             float t0 = Time.realtimeSinceStartup;
             _bootstrapper = GetComponent<SovereignBootstrapper>();
+            DetectMobileUi();
             _bootstrapper.SessionCreated += Bind;
             _bootstrapper.SessionClosed += OnSessionClosed;
             _art = new ArtLibrary();
@@ -152,6 +164,7 @@ namespace SovereignOfAshes.Presentation
             SetupCamera();
             InitializeMenu();
             InitializeAudio();
+            StartCoroutine(CheckForUpdate());
             float t2 = Time.realtimeSinceStartup;
             Bind(_bootstrapper.Session);
             SovereignCaptureHarness.AttachIfRequested(gameObject);
@@ -516,10 +529,12 @@ namespace SovereignOfAshes.Presentation
                 _theme = new GuiTheme();
             }
 
-            _guiScale = Screen.height / ReferenceHeight;
+            // No celular a interface é ampliada: o zoom depende da tela (menus longos precisam de mais altura).
+            _uiZoom = _mobileUi ? MobileZoom() : 1f;
+            float height = ReferenceHeight / _uiZoom;
+            _guiScale = Screen.height / height;
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(_guiScale, _guiScale, 1f));
             float width = Screen.width / _guiScale;
-            float height = ReferenceHeight;
 
             if (_session == null || IsMenuScreen)
             {
@@ -562,6 +577,8 @@ namespace SovereignOfAshes.Presentation
             DrawHand(width, height);
             DrawHint(width, height);
             DrawRingControl(width);
+            DrawTutorial(width, height);
+            DrawCardZoom(_zoomStartX, _zoomBaseY, _zoomWidth); // por cima dos painéis
 
             if (ShouldShowOffer)
             {
@@ -621,9 +638,9 @@ namespace SovereignOfAshes.Presentation
             }
 
             // A lista rola dentro do painel: com 19 receitas ela não cabe na tela.
-            float panelHeight = Mathf.Min(96f + contentHeight + 78f, ReferenceHeight - 2f * y);
+            float panelHeight = Mathf.Min(96f + contentHeight + 78f, CurrentHeight - 2f * y);
             var panel = new Rect(x, y, panelWidth, panelHeight);
-            _theme.Fill(new Rect(0f, 0f, width, ReferenceHeight), new Color(0f, 0f, 0f, 0.7f));
+            _theme.Fill(new Rect(0f, 0f, width, CurrentHeight), new Color(0f, 0f, 0f, 0.7f));
             _theme.Panel(panel);
 
             GUI.Label(new Rect(panel.x + 28f, panel.y + 18f, panel.width - 56f, 32f), "Grimório da Alquimia", _theme.Title);
@@ -633,6 +650,7 @@ namespace SovereignOfAshes.Presentation
 
             var viewRect = new Rect(panel.x, panel.y + 96f, panel.width, panel.height - 96f - 78f);
             var contentRect = new Rect(0f, 0f, panel.width - 24f, contentHeight);
+            DragScroll(viewRect, ref _grimoireScroll, contentHeight);
             _grimoireScroll = GUI.BeginScrollView(viewRect, _grimoireScroll, contentRect, false, contentHeight > viewRect.height);
             float rowY = 0f;
             float left = 0f;
@@ -777,16 +795,16 @@ namespace SovereignOfAshes.Presentation
         {
             IReadOnlyList<ICardDefinition> hand = _session.Deck.Hand;
             bool canAct = _session.Player.CanAct && !IsAnimating;
-            float handWidth = hand.Count * CardWidth + Mathf.Max(0, hand.Count - 1) * CardSpacing;
+            float handWidth = hand.Count * HandCardWidth + Mathf.Max(0, hand.Count - 1) * CardSpacing;
             float startX = (width - handWidth) * 0.5f;
-            float baseY = height - CardHeight - 16f;
+            float baseY = height - HandCardHeight - 16f;
             Vector2 mouse = Event.current != null ? Event.current.mousePosition : new Vector2(-1f, -1f);
 
             _hoveredCard = -1;
 
             for (int i = 0; i < hand.Count; i++)
             {
-                var slot = new Rect(startX + i * (CardWidth + CardSpacing), baseY - 24f, CardWidth, CardHeight + 24f);
+                var slot = new Rect(startX + i * (HandCardWidth + CardSpacing), baseY - 24f, HandCardWidth, HandCardHeight + 24f);
 
                 if (slot.Contains(mouse))
                 {
@@ -809,11 +827,21 @@ namespace SovereignOfAshes.Presentation
                 bool selected = i == _selectedCard;
                 bool hovered = i == _hoveredCard;
                 float lift = selected ? 26f : hovered && usable ? 16f : 0f;
-                var rect = new Rect(startX + i * (CardWidth + CardSpacing), baseY - lift, CardWidth, CardHeight);
+                var rect = new Rect(startX + i * (HandCardWidth + CardSpacing), baseY - lift, HandCardWidth, HandCardHeight);
 
                 Texture2D illustration = _art.CardIllustration(card);
 
-                CardPainter.Draw(rect, card, illustration != null ? illustration : _art.Card(card), _art.Sprite("crystal"), _theme, new CardVisualState
+                // A carta sempre é desenhada no layout nativo 178x240; no celular a matriz a reduz até o tamanho da mão.
+                Matrix4x4 savedMatrix = GUI.matrix;
+                Rect nativeRect = rect;
+
+                if (HandCardScale != 1f)
+                {
+                    GUI.matrix = savedMatrix * Matrix4x4.TRS(new Vector3(rect.x, rect.y, 0f), Quaternion.identity, new Vector3(HandCardScale, HandCardScale, 1f));
+                    nativeRect = new Rect(0f, 0f, CardWidth, CardHeight);
+                }
+
+                CardPainter.Draw(nativeRect, card, illustration != null ? illustration : _art.Card(card), _art.Sprite("crystal"), _theme, new CardVisualState
                 {
                     Selected = selected,
                     Hovered = hovered,
@@ -821,6 +849,8 @@ namespace SovereignOfAshes.Presentation
                     Affordable = affordable,
                     Time = Time.time
                 }, fillArtBox: illustration != null);
+
+                GUI.matrix = savedMatrix;
 
                 GUI.enabled = usable;
 
@@ -848,7 +878,23 @@ namespace SovereignOfAshes.Presentation
             }
 
             GUI.enabled = true;
-            DrawCardZoom(startX, baseY, width);
+
+            // Cancelar a seleção sem o botão direito do mouse (celular).
+            if (_selectedCard >= 0)
+            {
+                var cancel = new Rect(width - 262f, height - 164f, 240f, 44f);
+                _theme.Frame(cancel, cancel.Contains(mouse) ? GuiTheme.Gold : GuiTheme.Bronze, new Color(0.16f, 0.11f, 0.08f), 3f);
+                _theme.ShadowText(cancel, "CANCELAR CARTA", _theme.SmallNumber, Color.white);
+
+                if (GUI.Button(cancel, GUIContent.none, GUIStyle.none))
+                {
+                    _selectedCard = -1;
+                }
+            }
+
+            _zoomStartX = startX;
+            _zoomBaseY = baseY;
+            _zoomWidth = width;
         }
 
         private void OnCardClicked(int handIndex, ICardDefinition card)
@@ -878,7 +924,7 @@ namespace SovereignOfAshes.Presentation
 
             if (!string.IsNullOrEmpty(text))
             {
-                _theme.ShadowText(new Rect(0f, height - CardHeight - 44f, width, 26f), text, _theme.Centered, GuiTheme.Text);
+                _theme.ShadowText(new Rect(0f, height - HandCardHeight - 44f, width, 26f), text, _theme.Centered, GuiTheme.Text);
             }
         }
 
@@ -1005,7 +1051,7 @@ namespace SovereignOfAshes.Presentation
             // Mantém o balão dentro da tela (perto das bordas ele sairia para fora).
             float screenWidth = Screen.width / _guiScale;
             float x = Mathf.Min(mouse.x + 20f, screenWidth - 272f - 8f);
-            float y = Mathf.Min(mouse.y + 20f, ReferenceHeight - panelHeight - 8f);
+            float y = Mathf.Min(mouse.y + 20f, CurrentHeight - panelHeight - 8f);
             var rect = new Rect(x, y, 272f, panelHeight);
             _theme.Panel(rect);
 

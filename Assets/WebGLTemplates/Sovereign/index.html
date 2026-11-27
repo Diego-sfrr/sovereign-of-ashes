@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0b0708">
+  <title>{{{ PRODUCT_NAME }}}</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0b0708; overflow: hidden; touch-action: none;
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; font-family: Georgia, serif; }
+    #game { position: fixed; inset: 0; }
+    #unity-canvas { width: 100%; height: 100%; display: block; background: #0b0708; }
+    #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #0b0708; color: #d9a441; z-index: 5; }
+    #loading h1 { font-size: 28px; letter-spacing: 3px; margin: 0 0 6px; text-align: center; }
+    #loading p { margin: 0 0 22px; color: #8a7456; font-size: 14px; }
+    #bar { width: min(320px, 70vw); height: 8px; background: #2a1f16; border: 1px solid #5a4630; }
+    #bar-fill { width: 0; height: 100%; background: #d9a441; }
+    #rotate { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; text-align: center;
+      background: rgba(11, 7, 8, 0.96); color: #d9a441; z-index: 10; font-size: 22px; padding: 24px; }
+    #fs { position: fixed; right: 6px; bottom: 6px; width: 38px; height: 38px; z-index: 4; border: 1px solid #5a4630;
+      background: rgba(22, 16, 12, 0.7); color: #d9a441; font-size: 20px; border-radius: 4px; display: none; }
+    #warn { position: fixed; left: 0; right: 0; top: 0; z-index: 6; }
+    #warn div { padding: 8px; font: 14px sans-serif; color: #fff; background: #7a1f10; }
+    @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+  </style>
+</head>
+<body>
+  <div id="game"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+  <div id="loading"><h1>SOVEREIGN OF ASHES</h1><p>Ecos do Trono Vazio</p><div id="bar"><div id="bar-fill"></div></div></div>
+  <div id="rotate">Gire o celular para o modo horizontal para jogar.</div>
+  <button id="fs" title="Tela cheia">&#x26F6;</button>
+  <div id="warn"></div>
+  <script>
+    var canvas = document.querySelector("#unity-canvas");
+    var warn = document.querySelector("#warn");
+
+    function showBanner(msg, type) {
+      var div = document.createElement("div");
+      div.innerHTML = msg;
+      warn.appendChild(div);
+      if (type !== "error") { setTimeout(function () { if (div.parentNode) div.parentNode.removeChild(div); }, 5000); }
+    }
+
+    var buildUrl = "Build";
+    var config = {
+      arguments: [],
+      dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+      frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_WASM
+      codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if MEMORY_FILENAME
+      memoryUrl: buildUrl + "/{{{ MEMORY_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+      symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+      productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+      productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+      showBanner: showBanner,
+      // Celulares: resolução um pouco menor poupa bateria e deixa o jogo mais fluido.
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2)
+    };
+
+    var script = document.createElement("script");
+    script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    script.onload = function () {
+      createUnityInstance(canvas, config, function (progress) {
+        document.querySelector("#bar-fill").style.width = (100 * progress) + "%";
+      }).then(function (instance) {
+        document.querySelector("#loading").style.display = "none";
+        var fs = document.querySelector("#fs");
+        // iPhone não tem tela cheia pela página; nos demais aparece o botão.
+        if (document.fullscreenEnabled || document.webkitFullscreenEnabled) {
+          fs.style.display = "block";
+          fs.onclick = function () { instance.SetFullscreen(1); };
+        }
+      }).catch(function (message) { showBanner(String(message), "error"); });
+    };
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>

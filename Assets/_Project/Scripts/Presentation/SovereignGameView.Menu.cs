@@ -49,13 +49,18 @@ namespace SovereignOfAshes.Presentation
 
         private GUIStyle EpilogueStyle => _epilogueStyle ?? (_epilogueStyle = new GUIStyle(_theme.Label)
         {
-            fontSize = 22,
+            fontSize = GuiTheme.Px(22),
             alignment = TextAnchor.UpperCenter,
             wordWrap = true,
             fontStyle = FontStyle.Italic
         });
 
         private GUIStyle BodyStyle => _bodyStyle ?? (_bodyStyle = new GUIStyle(_theme.Label) { fontSize = 19, wordWrap = true });
+
+        // Textos longos que rolam (Como jogar) usam fonte maior no celular.
+        private GUIStyle _longTextStyle;
+
+        private GUIStyle LongTextStyle => _longTextStyle ?? (_longTextStyle = new GUIStyle(HintStyle) { fontSize = GuiTheme.Px(16) });
 
         private GUIStyle HintStyle => _hintStyle ?? (_hintStyle = new GUIStyle(_theme.Small) { fontSize = 16, wordWrap = true });
 
@@ -84,6 +89,14 @@ namespace SovereignOfAshes.Presentation
                 _showGrimoire = false;
                 _recordRegistered = false;
                 _newRecord = false;
+                ResetTutorialForNewSession();
+
+                if (_mobileUi)
+                {
+                    // Na tela pequena o log e os mandamentos começam recolhidos (um toque abre).
+                    _settings.PanelsCollapsed |= PanelChronicle | PanelCommandments;
+                }
+
                 StartTracking();
                 BindAudio();
             }
@@ -92,6 +105,7 @@ namespace SovereignOfAshes.Presentation
         private void OnSessionClosed()
         {
             Unbind();
+            _tutorialStep = -1;
             _uiScreen = UiScreen.Menu;
             _showGrimoire = false;
         }
@@ -318,26 +332,50 @@ namespace SovereignOfAshes.Presentation
                 _theme.ShadowText(new Rect(0f, 330f, width, 34f), "Ecos do Trono Vazio", _theme.Centered, GuiTheme.Text);
             }
 
-            if (MenuButton(new Rect(cx - 360f, 628f, 350f, 70f), "JOGAR AGORA", primary: true))
+            // Na primeira vez o tutorial ganha o destaque; depois o JOGAR AGORA volta a ser o principal.
+            bool firstTime = !_settings.TutorialDone;
+
+            if (MenuButton(new Rect(cx - 580f, 628f, 360f, 70f), "JOGAR AGORA", primary: !firstTime))
             {
                 OpenCivilizationChoice(GameMode.Standard);
             }
 
-            string record = _settings.BestEndlessTurn > 0 ? $"INFINITO  ·  RECORDE {_settings.BestEndlessTurn}" : "MODO INFINITO (HARDCORE)";
+            if (MenuButton(new Rect(cx - 210f, 628f, 420f, 70f), firstTime ? "TUTORIAL (COMECE AQUI)" : "TUTORIAL", primary: firstTime))
+            {
+                StartTutorial();
+            }
 
-            if (MenuButton(new Rect(cx + 10f, 628f, 350f, 70f), record))
+            string record = _settings.BestEndlessTurn > 0 ? $"INFINITO  ·  RECORDE {_settings.BestEndlessTurn}"
+                : _mobileUi ? "MODO INFINITO" : "MODO INFINITO (HARDCORE)";
+
+            if (MenuButton(new Rect(cx + 220f, 628f, 360f, 70f), record))
             {
                 OpenCivilizationChoice(GameMode.Endless);
             }
 
             string trophies = $"CONQUISTAS {_achievements.UnlockedCount}/{AchievementCatalog.All.Count}";
-            string[] labels = { "COMO JOGAR", trophies, "CONFIGURAÇÕES", "SUGESTÕES E BUGS", "APOIE O CRIADOR", "SAIR" };
-            float[] widths = { 170f, 230f, 210f, 250f, 250f, 110f };
-            float x = cx - (170f + 230f + 210f + 250f + 250f + 110f + 5f * 12f) * 0.5f;
+#if UNITY_WEBGL
+            // No navegador não há como "sair": o botão SAIR some.
+            string[] labels = { "COMO JOGAR", trophies, "CONFIGURAÇÕES", "FEEDBACK", "APOIE O CRIADOR" };
+            float[] widths = { 170f, 230f, 210f, 160f, 250f };
+#else
+            string[] labels = { "COMO JOGAR", trophies, "CONFIGURAÇÕES", "FEEDBACK", "APOIE O CRIADOR", "SAIR" };
+            float[] widths = { 170f, 230f, 210f, 160f, 250f, 110f };
+#endif
+            float rowWidth = (labels.Length - 1) * 12f;
+            float rowScale = _mobileUi ? 1.3f : 1f; // fonte maior no celular: os botões também crescem
+
+            for (int w = 0; w < widths.Length; w++)
+            {
+                widths[w] *= rowScale;
+                rowWidth += widths[w];
+            }
+
+            float x = cx - rowWidth * 0.5f;
 
             for (int i = 0; i < labels.Length; i++)
             {
-                if (MenuButton(new Rect(x, 714f, widths[i], 52f), labels[i]))
+                if (MenuButton(new Rect(x, 714f, widths[i], _mobileUi ? 62f : 52f), labels[i]))
                 {
                     switch (i)
                     {
@@ -346,16 +384,22 @@ namespace SovereignOfAshes.Presentation
                         case 2: GoToSettings(); break;
                         case 3: _uiScreen = UiScreen.Feedback; break;
                         case 4: _uiScreen = UiScreen.Support; break;
-                        default: Application.Quit(); break;
+                        default:
+#if !UNITY_WEBGL
+                            Application.Quit();
+#endif
+                            break;
                     }
                 }
 
                 x += widths[i] + 12f;
             }
 
+            DrawUpdateBanner(width);
+
             string seed = _settings.Seed == 0 ? "aleatória" : _settings.Seed.ToString();
             _theme.ShadowText(new Rect(0f, height - 92f, width, 26f),
-                $"Dificuldade: {DifficultyPresets.Name(_settings.Difficulty)}     ·     Semente: {seed}", _theme.Centered, GuiTheme.TextDim);
+                $"v{Application.version}     ·     Dificuldade: {DifficultyPresets.Name(_settings.Difficulty)}     ·     Semente: {seed}", _theme.Centered, GuiTheme.TextDim);
             _theme.ShadowText(new Rect(0f, height - 62f, width, 26f),
                 "Dentro da partida:  Esc pausa   ·   G abre o Grimório   ·   passe o mouse numa carta para ampliá-la", _theme.Centered, GuiTheme.TextDim);
         }
@@ -366,7 +410,7 @@ namespace SovereignOfAshes.Presentation
         {
             var panel = new Rect((width - 900f) * 0.5f, (height - 560f) * 0.5f, 900f, 560f);
             _theme.Panel(panel);
-            _theme.ShadowText(new Rect(panel.x, panel.y + 18f, panel.width, 44f), "Sugestões e bugs", _theme.Heading, GuiTheme.Gold);
+            _theme.ShadowText(new Rect(panel.x, panel.y + 18f, panel.width, 44f), "Feedback", _theme.Heading, GuiTheme.Gold);
             _theme.Divider(panel.x + 60f, panel.y + 70f, panel.width - 120f);
 
             string message =
@@ -451,6 +495,20 @@ namespace SovereignOfAshes.Presentation
             }
         }
 
+        private Vector2 _howToScroll;
+
+        /// <summary>Rolagem arrastando o dedo (ou o mouse) dentro da área; a roda continua funcionando.</summary>
+        private static void DragScroll(Rect area, ref Vector2 scroll, float contentHeight)
+        {
+            Event current = Event.current;
+
+            if (current != null && current.type == EventType.MouseDrag && current.button == 0 && area.Contains(current.mousePosition))
+            {
+                float max = Mathf.Max(0f, contentHeight - area.height);
+                scroll.y = Mathf.Clamp(scroll.y - current.delta.y, 0f, max);
+            }
+        }
+
         private void DrawHowToPlay(float width, float height)
         {
             float panelHeight = Mathf.Min(height - 100f, 840f);
@@ -476,24 +534,38 @@ namespace SovereignOfAshes.Presentation
             // Duas colunas: as seções cabem sem passar do painel.
             float columnWidth = (panel.width - 150f) * 0.5f;
             int perColumn = 6;
-            float top = panel.y + 92f;
-            float y = top;
+
+            // Primeiro mede cada coluna; se o texto não couber (celular, fonte maior), a área rola com o dedo ou a roda.
+            float[] heights = new float[2];
+
+            for (int i = 0; i < sections.GetLength(0); i++)
+            {
+                heights[i < perColumn ? 0 : 1] += 30f + LongTextStyle.CalcHeight(new GUIContent(sections[i, 1]), columnWidth) + 18f;
+            }
+
+            var view = new Rect(panel.x + 20f, panel.y + 84f, panel.width - 40f, panel.height - 84f - 100f);
+            float contentHeight = Mathf.Max(heights[0], heights[1]);
+            DragScroll(view, ref _howToScroll, contentHeight);
+            _howToScroll = GUI.BeginScrollView(view, _howToScroll, new Rect(0f, 0f, view.width - 22f, contentHeight), false, contentHeight > view.height);
+            float y = 8f;
 
             for (int i = 0; i < sections.GetLength(0); i++)
             {
                 if (i == perColumn)
                 {
-                    y = top;
+                    y = 8f;
                 }
 
-                float x = panel.x + 55f + (i < perColumn ? 0f : columnWidth + 40f);
+                float x = 35f + (i < perColumn ? 0f : columnWidth + 40f);
                 GUI.Label(new Rect(x, y, columnWidth, 28f), sections[i, 0], _theme.Title);
                 y += 30f;
                 var body = new GUIContent(sections[i, 1]);
-                float bodyHeight = HintStyle.CalcHeight(body, columnWidth);
-                GUI.Label(new Rect(x, y, columnWidth, bodyHeight), body, HintStyle);
+                float bodyHeight = LongTextStyle.CalcHeight(body, columnWidth);
+                GUI.Label(new Rect(x, y, columnWidth, bodyHeight), body, LongTextStyle);
                 y += bodyHeight + 18f;
             }
+
+            GUI.EndScrollView();
 
             if (MenuButton(new Rect(panel.center.x - 130f, panel.yMax - 84f, 260f, MenuButtonHeight), "VOLTAR"))
             {

@@ -82,6 +82,19 @@ namespace SovereignOfAshes.Presentation
                 return;
             }
 
+#if UNITY_WEBGL
+            // O WebGL não tem threads: a síntese vira uma fila de tarefas pequenas, uma por quadro (ver Pump).
+            _webJobs.Enqueue(() => _readyTracks.Enqueue(new KeyValuePair<MusicId, float[]>(MusicId.Menu, MusicCatalog.Render(MusicId.Menu))));
+
+            foreach (SoundId id in Enum.GetValues(typeof(SoundId)))
+            {
+                SoundId captured = id;
+                _webJobs.Enqueue(() => _readySounds.Enqueue(new KeyValuePair<SoundId, float[]>(captured, SoundCatalog.Render(captured))));
+            }
+
+            _webJobs.Enqueue(() => _readyTracks.Enqueue(new KeyValuePair<MusicId, float[]>(MusicId.Battle, MusicCatalog.Render(MusicId.Battle))));
+            return;
+#else
             Task.Run(() =>
             {
                 try
@@ -100,7 +113,10 @@ namespace SovereignOfAshes.Presentation
                     Debug.LogWarning("Falha ao sintetizar o áudio: " + exception.Message);
                 }
             });
+#endif
         }
+
+        private readonly Queue<Action> _webJobs = new Queue<Action>();
 
         /// <summary>
         /// Chame uma vez por quadro: cria os clipes que ficaram prontos e ajusta o volume da música.
@@ -111,6 +127,18 @@ namespace SovereignOfAshes.Presentation
             if (!_enabled || _disposed)
             {
                 return;
+            }
+
+            if (_webJobs.Count > 0)
+            {
+                try
+                {
+                    _webJobs.Dequeue()();
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogWarning("Falha ao sintetizar o áudio: " + exception.Message);
+                }
             }
 
             int budget = 4;

@@ -87,6 +87,53 @@ namespace SovereignOfAshes.EditorTools
             }
         }
 
+        /// <summary>Pasta da versão de navegador (WebGL), relativa à pasta do projeto.</summary>
+        public const string WebBuildPath = "Builds/WebGL";
+
+        /// <summary>
+        /// Gera a versão de navegador (WebGL), que roda em computador e celular (Android e iPhone) sem instalar nada.
+        /// Usa compressão Brotli com plano B no próprio carregador, então funciona em qualquer hospedagem estática.
+        /// </summary>
+        [MenuItem("Sovereign of Ashes/Gerar versão para navegador (WebGL)")]
+        public static void BuildWebGL()
+        {
+            if (!File.Exists(ScenePath))
+            {
+                CreateMainScene();
+            }
+
+            PlayerSettings.companyName = "Diego";
+            PlayerSettings.productName = "Sovereign of Ashes";
+            PlayerSettings.runInBackground = true;
+            PlayerSettings.SplashScreen.show = false;
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.WebGL.template = "PROJECT:Sovereign";
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = WebBuildPath,
+                target = BuildTarget.WebGL,
+                options = BuildOptions.None
+            };
+
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+
+            if (report.summary.result == BuildResult.Succeeded)
+            {
+                Debug.Log($"[Sovereign] Versão web gerada em {WebBuildPath} ({report.summary.totalSize / (1024 * 1024)} MB).");
+                return;
+            }
+
+            Debug.LogError($"[Sovereign] Falha ao gerar a versão web: {report.summary.result}.");
+
+            if (Application.isBatchMode)
+            {
+                EditorApplication.Exit(1);
+            }
+        }
+
         /// <summary>
         /// Ajustes que encurtam a abertura do jogo: sem tela de splash do Unity e com Direct3D 11 (a inicialização do
         /// Direct3D 12 é bem mais lenta e este jogo 2D não usa nada que dependa dela).

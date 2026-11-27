@@ -537,8 +537,12 @@ namespace SovereignOfAshes.Presentation
         private void DrawTopBar(float width)
         {
             _theme.Frame(new Rect(0f, 0f, width, TopBarHeight), GuiTheme.Bronze, new Color(0.06f, 0.05f, 0.07f, 0.97f), 3f);
-            _theme.Image(new Rect(18f, 12f, 40f, 40f), _art.Sprite("core"), Color.white);
-            _theme.ShadowText(new Rect(66f, 12f, 280f, 40f), "SOVEREIGN OF ASHES", _theme.Number, GuiTheme.Gold);
+            _theme.Image(new Rect(18f, 8f, 40f, 40f), _art.Sprite("core"), Color.white);
+
+            if (!_mobileUi)
+            {
+                _theme.ShadowText(new Rect(66f, 12f, 280f, 40f), "SOVEREIGN OF ASHES", _theme.Number, GuiTheme.Gold);
+            }
 
             TurnSystem turns = _session.Turns;
             string goal = _session.TurnsToSurvive > 0 ? $" / {_session.TurnsToSurvive}" : " / ∞";
@@ -575,6 +579,16 @@ namespace SovereignOfAshes.Presentation
             if (GUI.Button(grimoire, GUIContent.none, GUIStyle.none))
             {
                 _showGrimoire = !_showGrimoire;
+            }
+
+            // Botão de pausa: no celular não existe a tecla Esc.
+            var pause = new Rect(width - 330f, 10f, 96f, 44f);
+            _theme.Frame(pause, pause.Contains(mouse) ? GuiTheme.Gold : GuiTheme.Bronze, new Color(0.16f, 0.11f, 0.08f), 3f);
+            _theme.ShadowText(pause, "PAUSA", _theme.SmallNumber, Color.white);
+
+            if (GUI.Button(pause, GUIContent.none, GUIStyle.none))
+            {
+                TogglePause();
             }
 
             int turnGoal = _session.TurnsToSurvive;
@@ -697,13 +711,15 @@ namespace SovereignOfAshes.Presentation
         private void DrawPiles(float height)
         {
             Texture2D back = _art.Painting(ArtCatalog.CardBackPath);
-            DrawPile(new Rect(38f, height - 196f, 100f, 134f), back, _session.Deck.DrawPileCount, "COMPRA");
-            DrawPile(new Rect(160f, height - 196f, 100f, 134f), back, _session.Deck.DiscardPileCount, "DESCARTE");
+            float pileWidth = 100f * HandCardScale;
+            float pileHeight = 134f * HandCardScale;
+            DrawPile(new Rect(38f, height - pileHeight - 62f, pileWidth, pileHeight), back, _session.Deck.DrawPileCount, "COMPRA");
+            DrawPile(new Rect(38f + pileWidth + 24f, height - pileHeight - 62f, pileWidth, pileHeight), back, _session.Deck.DiscardPileCount, "DESCARTE");
         }
 
         private void DrawPile(Rect rect, Texture2D back, int count, string label)
         {
-            _theme.ShadowText(new Rect(rect.x - 10f, rect.y - 24f, rect.width + 20f, 20f), label, _theme.SmallNumber, GuiTheme.TextDim);
+            _theme.ShadowText(new Rect(rect.x - 40f, rect.y - 24f, rect.width + 80f, 20f), label, _theme.SmallNumber, GuiTheme.TextDim);
 
             if (count <= 0)
             {
@@ -744,12 +760,12 @@ namespace SovereignOfAshes.Presentation
             }
 
             ICardDefinition card = _session.Deck.Hand[_hoveredCard];
-            const float scale = 1.5f;
+            float scale = _mobileUi ? 2.0f : 1.5f; // no celular a prévia é maior: é onde se lê a carta
             float zoomWidth = CardWidth * scale;
             float zoomHeight = CardHeight * scale;
-            float centerX = startX + _hoveredCard * (CardWidth + CardSpacing) + CardWidth * 0.5f;
+            float centerX = startX + _hoveredCard * (HandCardWidth + CardSpacing) + HandCardWidth * 0.5f;
             float x = Mathf.Clamp(centerX - zoomWidth * 0.5f, 16f, width - zoomWidth - 16f);
-            float y = baseY - zoomHeight - 46f;
+            float y = Mathf.Max(TopBarHeight + 6f, baseY - zoomHeight - 46f);
 
             Texture2D illustration = _art.CardIllustration(card);
             CardPainter.DrawZoomed(new Rect(x, y, zoomWidth, zoomHeight), card, illustration != null ? illustration : _art.Card(card),
@@ -846,7 +862,7 @@ namespace SovereignOfAshes.Presentation
             }
 
             // Convite discreto, abaixo da faixa: só abre o navegador se a pessoa clicar.
-            if (MenuButton(new Rect(width * 0.5f - 150f, y0 + 396f, 300f, 46f), "APOIE O CRIADOR"))
+            if (MenuButton(new Rect(width * 0.5f - 150f, Mathf.Min(y0 + 396f, height - 56f), 300f, 46f), "APOIE O CRIADOR"))
             {
                 Application.OpenURL(SupportInfo.DonationUrl);
             }

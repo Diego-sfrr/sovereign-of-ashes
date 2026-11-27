@@ -60,6 +60,9 @@ namespace SovereignOfAshes.Session
         /// <summary>Máscara de bits dos painéis recolhidos na partida (a interface decide o significado de cada bit). Salva.</summary>
         public int PanelsCollapsed { get; set; }
 
+        /// <summary>Se o jogador já concluiu o tutorial (o menu destaca o botão enquanto for falso). Salvo.</summary>
+        public bool TutorialDone { get; set; }
+
         /// <summary>Volume da música, de 0 (mudo) a 10.</summary>
         public int MusicVolume
         {
@@ -134,6 +137,7 @@ namespace SovereignOfAshes.Session
             MusicVolume = MusicVolume,
             SfxVolume = SfxVolume,
             PanelsCollapsed = PanelsCollapsed,
+            TutorialDone = TutorialDone,
             BestEndlessTurn = BestEndlessTurn
         };
 
@@ -152,6 +156,7 @@ namespace SovereignOfAshes.Session
             text.Append(";music=").Append(MusicVolume.ToString(CultureInfo.InvariantCulture));
             text.Append(";sfx=").Append(SfxVolume.ToString(CultureInfo.InvariantCulture));
             text.Append(";panels=").Append(PanelsCollapsed.ToString(CultureInfo.InvariantCulture));
+            text.Append(";tutorial=").Append(TutorialDone ? 1 : 0);
             return text.ToString();
         }
 
@@ -220,6 +225,9 @@ namespace SovereignOfAshes.Session
                         break;
                     case "panels":
                         settings.PanelsCollapsed = Math.Max(0, number);
+                        break;
+                    case "tutorial":
+                        settings.TutorialDone = number != 0;
                         break;
                 }
             }

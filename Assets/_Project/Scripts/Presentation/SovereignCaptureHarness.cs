@@ -101,6 +101,23 @@ namespace SovereignOfAshes.Presentation
             yield return new WaitForSeconds(0.4f);
             yield return Capture("m9-feedback");
             _view.ShowScreenForCapture("menu");
+
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sovereign-tutorial") >= 0)
+            {
+                _view.StartTutorialForCapture();
+                yield return new WaitForSeconds(2.5f);
+
+                foreach (int step in new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 })
+                {
+                    _view.SetTutorialStepForCapture(step);
+                    yield return new WaitForSeconds(0.5f);
+                    yield return Capture($"t{step + 1}-tutorial");
+                }
+
+                Application.Quit();
+                yield break;
+            }
+
             _view.StartGameForCapture(Array.IndexOf(Environment.GetCommandLineArgs(), "-sovereign-endless") >= 0);
             yield return new WaitForSeconds(2.5f);
 

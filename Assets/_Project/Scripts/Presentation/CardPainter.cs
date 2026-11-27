@@ -117,6 +117,13 @@ namespace SovereignOfAshes.Presentation
         {
             float s = rect.width / 178f;
 
+            // As fontes acompanham o tamanho da prévia (1,5x é o tamanho de referência).
+            float f = s / 1.5f;
+            theme.CardNameLarge.fontSize = Mathf.RoundToInt(20f * f);
+            theme.CardBodyLarge.fontSize = Mathf.RoundToInt(17f * f);
+            theme.CardTypeLarge.fontSize = Mathf.RoundToInt(15f * f);
+            theme.CostNumberLarge.fontSize = Mathf.RoundToInt(28f * f);
+
             theme.Fill(new Rect(rect.x - 10f, rect.y - 10f, rect.width + 20f, rect.height + 20f), new Color(0f, 0f, 0f, 0.55f));
             theme.Frame(rect, GuiTheme.Gold, Parchment, 5f);
 

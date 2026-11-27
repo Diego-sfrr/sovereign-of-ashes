@@ -127,3 +127,17 @@ Assets/_Project/
     Presentation   bootstrapper, interface (tabuleiro gerado + HUD) e geometria de clique
   Tests/           testes EditMode (NUnit)
 ```
+
+## Publicar uma versão nova para os amigos
+
+Um comando só (Unity Hub aberto):
+
+```powershell
+.\publicar-versao.ps1 -Version 0.4.0 -Notes "Novo chefe e ajustes" -DownloadUrl "https://link-do-zip"
+```
+
+Ele grava a versão, roda os testes (para se algum falhar), gera o build, atualiza a pasta e o
+`SovereignOfAshes-Windows.zip` na área de trabalho e escreve `tools\version.json`. O jogo consulta o endereço
+`SupportInfo.UpdateManifestUrl` ao abrir e mostra "Nova versão disponível" com botão de baixar. Para o aviso
+funcionar, publique o `version.json` num endereço público e preencha essa constante (ou guarde o id de um gist em
+`tools\gist-id.txt` para o script atualizar sozinho).

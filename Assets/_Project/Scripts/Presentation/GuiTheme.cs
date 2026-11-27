@@ -118,15 +118,15 @@ namespace SovereignOfAshes.Presentation
             White.Apply();
 
             Title = MakeText(18, Gold, FontStyle.Bold, TextAnchor.UpperLeft);
-            Banner = MakeText(64, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+            Banner = MakeText(64, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter, scale: false);
             Label = MakeText(14, Text, FontStyle.Normal, TextAnchor.UpperLeft);
             Small = MakeText(13, TextDim, FontStyle.Normal, TextAnchor.UpperLeft);
             Centered = MakeText(16, Text, FontStyle.Normal, TextAnchor.MiddleCenter);
             Number = MakeText(22, Color.white, FontStyle.Bold, TextAnchor.MiddleLeft);
             SmallNumber = MakeText(13, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
-            CostNumber = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+            CostNumber = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter, scale: false);
             Tag = MakeText(13, Color.white, FontStyle.Bold, TextAnchor.MiddleLeft);
-            Heading = MakeText(34, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+            Heading = MakeText(34, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter, scale: false);
 
             _inputTexture = new Texture2D(1, 1);
             _inputTexture.SetPixel(0, 0, new Color(0.10f, 0.08f, 0.11f, 1f));
@@ -144,14 +144,15 @@ namespace SovereignOfAshes.Presentation
             TextInput.normal.textColor = Text;
             TextInput.hover.textColor = Text;
             TextInput.focused.textColor = Color.white;
-            CardNameLarge = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
-            CardBodyLarge = MakeText(17, Text, FontStyle.Normal, TextAnchor.UpperCenter);
-            CardTypeLarge = MakeText(15, Gold, FontStyle.Italic, TextAnchor.MiddleCenter);
-            CostNumberLarge = MakeText(28, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
-            FloatText = MakeText(24, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
-            CardName = MakeText(14, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
-            CardBody = MakeText(12, Text, FontStyle.Normal, TextAnchor.UpperCenter);
-            CardType = MakeText(11, Gold, FontStyle.Italic, TextAnchor.MiddleCenter);
+            // As cartas têm layout fixo (178x240): suas fontes não acompanham o ajuste de fonte do celular.
+            CardNameLarge = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter, scale: false);
+            CardBodyLarge = MakeText(17, Text, FontStyle.Normal, TextAnchor.UpperCenter, scale: false);
+            CardTypeLarge = MakeText(15, Gold, FontStyle.Italic, TextAnchor.MiddleCenter, scale: false);
+            CostNumberLarge = MakeText(28, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter, scale: false);
+            FloatText = MakeText(24, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter, scale: false);
+            CardName = MakeText(14, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter, scale: false);
+            CardBody = MakeText(12, Text, FontStyle.Normal, TextAnchor.UpperCenter, scale: false);
+            CardType = MakeText(11, Gold, FontStyle.Italic, TextAnchor.MiddleCenter, scale: false);
             ButtonText = MakeText(20, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
         }
 
@@ -361,11 +362,19 @@ namespace SovereignOfAshes.Presentation
             return $"#{r:X2}{g:X2}{b:X2}";
         }
 
-        private static GUIStyle MakeText(int size, Color color, FontStyle fontStyle, TextAnchor alignment)
+        /// <summary>Multiplicador das fontes de texto da interface (1 no computador; maior no celular, onde a tela é pequena).</summary>
+        public static float FontScale { get; set; } = 1f;
+
+        /// <summary>Aplica <see cref="FontScale"/> a um tamanho de fonte.</summary>
+        /// <param name="size">Tamanho base.</param>
+        /// <returns>Tamanho ajustado (inteiro).</returns>
+        public static int Px(int size) => Mathf.RoundToInt(size * FontScale);
+
+        private static GUIStyle MakeText(int size, Color color, FontStyle fontStyle, TextAnchor alignment, bool scale = true)
         {
             var style = new GUIStyle(GUI.skin.label)
             {
-                fontSize = size,
+                fontSize = scale ? Px(size) : size,
                 fontStyle = fontStyle,
                 alignment = alignment,
                 wordWrap = true,

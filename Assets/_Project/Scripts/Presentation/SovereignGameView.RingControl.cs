@@ -33,7 +33,7 @@ namespace SovereignOfAshes.Presentation
             RingControlService control = _session.RingControl;
             bool available = control.CanUseNow && !IsAnimating;
             bool collapsed = IsCollapsed(PanelIntervention);
-            float panelHeight = collapsed ? 44f : 282f;
+            float panelHeight = collapsed ? 44f : _mobileUi ? 312f : 282f;
 
             // Ao lado esquerdo do tabuleiro, medido em coordenadas da interface (o tabuleiro vive no mundo da câmera).
             Vector2 center = WorldToGui(Vector2.zero);
