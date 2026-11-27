@@ -134,6 +134,64 @@ namespace SovereignOfAshes.EditorTools
             }
         }
 
+        /// <summary>Arquivo APK gerado para Android (relativo à pasta do projeto).</summary>
+        public const string AndroidBuildPath = "Builds/Android/SovereignOfAshes.apk";
+
+        /// <summary>
+        /// Gera o APK para Android (instalação direta, sem loja): somente horizontal, 64 bits (ARM64) e IL2CPP.
+        /// Precisa do módulo "Android Build Support" (com SDK/NDK e JDK) instalado no Unity Hub.
+        /// </summary>
+        [MenuItem("Sovereign of Ashes/Gerar APK para Android")]
+        public static void BuildAndroid()
+        {
+            if (!File.Exists(ScenePath))
+            {
+                CreateMainScene();
+            }
+
+            PlayerSettings.companyName = "Diego";
+            PlayerSettings.productName = "Sovereign of Ashes";
+            PlayerSettings.SplashScreen.show = false;
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, "com.diego.sovereignofashes");
+            PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
+            PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
+            PlayerSettings.allowedAutorotateToPortrait = false;
+            PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
+            PlayerSettings.allowedAutorotateToLandscapeLeft = true;
+            PlayerSettings.allowedAutorotateToLandscapeRight = true;
+            PlayerSettings.runInBackground = false;
+            EditorUserBuildSettings.buildAppBundle = false;
+            EditorUserBuildSettings.androidBuildSubtarget = MobileTextureSubtarget.ASTC;
+
+            Directory.CreateDirectory(Path.GetDirectoryName(AndroidBuildPath));
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = AndroidBuildPath,
+                target = BuildTarget.Android,
+                targetGroup = BuildTargetGroup.Android,
+                options = BuildOptions.None
+            };
+
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+
+            if (report.summary.result == BuildResult.Succeeded)
+            {
+                Debug.Log($"[Sovereign] APK gerado em {AndroidBuildPath} ({report.summary.totalSize / (1024 * 1024)} MB).");
+                return;
+            }
+
+            Debug.LogError($"[Sovereign] Falha ao gerar o APK: {report.summary.result}.");
+
+            if (Application.isBatchMode)
+            {
+                EditorApplication.Exit(1);
+            }
+        }
+
         /// <summary>
         /// Ajustes que encurtam a abertura do jogo: sem tela de splash do Unity e com Direct3D 11 (a inicialização do
         /// Direct3D 12 é bem mais lenta e este jogo 2D não usa nada que dependa dela).
