@@ -179,9 +179,9 @@ namespace SovereignOfAshes.Presentation
                 case TutorialArea.Hand:
                     return new Rect((width - 1040f) * 0.5f, height - HandCardHeight - 40f, 1040f, HandCardHeight + 36f);
                 case TutorialArea.LeftPanel:
-                    return new Rect(10f, TopBarHeight + 8f, SidePanelWidth + 8f, height - TopBarHeight - HandAreaHeight - 12f);
+                    return Grow(_panelRects[PanelIdLeft], 6f);
                 case TutorialArea.RightPanel:
-                    return new Rect(width - SidePanelWidth - 18f, TopBarHeight + 8f, SidePanelWidth + 8f, height - TopBarHeight - HandAreaHeight - 12f);
+                    return Grow(_panelRects[PanelIdRight], 6f);
                 case TutorialArea.EndTurn:
                     return new Rect(width - 270f, height - 118f, 256f, 96f);
                 case TutorialArea.Board:
@@ -190,6 +190,8 @@ namespace SovereignOfAshes.Presentation
                     return Rect.zero;
             }
         }
+
+        private static Rect Grow(Rect rect, float by) => new Rect(rect.x - by, rect.y - by, rect.width + by * 2f, rect.height + by * 2f);
 
         private void DrawTutorial(float width, float height)
         {

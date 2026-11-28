@@ -552,8 +552,19 @@ namespace SovereignOfAshes.Presentation
 
             DrawTopBar(width);
             float panelHeight = height - TopBarHeight - HandAreaHeight - 20f;
-            DrawLeftPanel(new Rect(14f, TopBarHeight + 12f, SidePanelWidth, panelHeight));
-            DrawRightPanel(new Rect(width - SidePanelWidth - 14f, TopBarHeight + 12f, SidePanelWidth, panelHeight));
+            _panelsLocked = _uiScreen != UiScreen.Playing || _showGrimoire || ShouldShowOffer
+                || _session.Turns.State == TurnState.GameOver || _gameOverPreview.HasValue;
+
+            // Painéis que o jogador pode arrastar para onde quiser (a barrinha fica no alto de cada um).
+            var leftBasis = new Rect(14f, TopBarHeight + 12f + HandleHeight, SidePanelWidth, panelHeight - HandleHeight);
+            Rect left = PlacePanel(PanelIdLeft, leftBasis, width, height);
+            DrawPanelHandle(PanelIdLeft, leftBasis, left);
+            DrawLeftPanel(left);
+
+            var rightBasis = new Rect(width - SidePanelWidth - 14f, TopBarHeight + 12f + HandleHeight, SidePanelWidth, panelHeight - HandleHeight);
+            Rect right = PlacePanel(PanelIdRight, rightBasis, width, height);
+            DrawPanelHandle(PanelIdRight, rightBasis, right);
+            DrawRightPanel(right);
             DrawTurnBanner(width);
             _floatingText.Draw(WorldToGui, _theme.FloatText);
 
@@ -1170,10 +1181,11 @@ namespace SovereignOfAshes.Presentation
 
         private bool IsOverBoardArea(Vector2 guiPoint, float width, float height)
         {
-            return guiPoint.x > SidePanelWidth + 14f
-                && guiPoint.x < width - SidePanelWidth - 14f
+            return guiPoint.x > 14f
+                && guiPoint.x < width - 14f
                 && guiPoint.y > TopBarHeight
-                && guiPoint.y < height - HandAreaHeight + 20f;
+                && guiPoint.y < height - HandAreaHeight + 20f
+                && !IsOverPanel(guiPoint);
         }
 
         private TectonicSector PickSector(Vector2 guiPoint)

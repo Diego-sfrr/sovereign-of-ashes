@@ -38,7 +38,9 @@ namespace SovereignOfAshes.Presentation
             // Ao lado esquerdo do tabuleiro, medido em coordenadas da interface (o tabuleiro vive no mundo da câmera).
             Vector2 center = WorldToGui(Vector2.zero);
             float radius = Mathf.Abs(WorldToGui(new Vector2(0f, _layout.OuterEdge)).y - center.y);
-            var panel = new Rect(center.x - radius - 22f - RingPanelWidth, center.y - 141f, RingPanelWidth, panelHeight);
+            var basis = new Rect(center.x - radius - 22f - RingPanelWidth, center.y - 141f, RingPanelWidth, panelHeight);
+            Rect panel = PlacePanel(PanelIdRing, basis, width, CurrentHeight);
+            DrawPanelHandle(PanelIdRing, basis, panel);
 
             _theme.Frame(panel, available ? GuiTheme.Bronze : new Color(0.25f, 0.2f, 0.16f), new Color(0.07f, 0.06f, 0.08f, 0.94f), 3f);
 

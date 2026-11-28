@@ -60,6 +60,32 @@ namespace SovereignOfAshes.Session
         /// <summary>Máscara de bits dos painéis recolhidos na partida (a interface decide o significado de cada bit). Salva.</summary>
         public int PanelsCollapsed { get; set; }
 
+        /// <summary>Quantos painéis do HUD podem mudar de lugar (Civilizações, Crônica e Intervenção).</summary>
+        public const int MovablePanels = 3;
+
+        private readonly int[] _panelOffsets = new int[MovablePanels * 2];
+
+        /// <summary>Deslocamento (em pontos da interface) de um painel em relação à posição padrão. Salvo.</summary>
+        /// <param name="panel">Índice do painel (0 a <see cref="MovablePanels"/> - 1).</param>
+        /// <returns>X e Y do deslocamento (0, 0 = lugar padrão).</returns>
+        public (int X, int Y) GetPanelOffset(int panel) =>
+            panel < 0 || panel >= MovablePanels ? (0, 0) : (_panelOffsets[panel * 2], _panelOffsets[panel * 2 + 1]);
+
+        /// <summary>Define o deslocamento de um painel (limitado a ±4000).</summary>
+        /// <param name="panel">Índice do painel.</param>
+        /// <param name="x">Deslocamento horizontal.</param>
+        /// <param name="y">Deslocamento vertical.</param>
+        public void SetPanelOffset(int panel, int x, int y)
+        {
+            if (panel < 0 || panel >= MovablePanels)
+            {
+                return;
+            }
+
+            _panelOffsets[panel * 2] = Math.Max(-4000, Math.Min(4000, x));
+            _panelOffsets[panel * 2 + 1] = Math.Max(-4000, Math.Min(4000, y));
+        }
+
         /// <summary>Se o jogador já concluiu o tutorial (o menu destaca o botão enquanto for falso). Salvo.</summary>
         public bool TutorialDone { get; set; }
 
@@ -125,21 +151,27 @@ namespace SovereignOfAshes.Session
         /// Cria uma cópia independente.
         /// </summary>
         /// <returns>Nova instância com os mesmos valores.</returns>
-        public GameSettings Clone() => new GameSettings
+        public GameSettings Clone()
         {
-            Difficulty = Difficulty,
-            Fullscreen = Fullscreen,
-            Animation = Animation,
-            Seed = Seed,
-            Mode = Mode,
-            CovenantId = CovenantId,
-            CivilizationId = CivilizationId,
-            MusicVolume = MusicVolume,
-            SfxVolume = SfxVolume,
-            PanelsCollapsed = PanelsCollapsed,
-            TutorialDone = TutorialDone,
-            BestEndlessTurn = BestEndlessTurn
-        };
+            var copy = new GameSettings
+            {
+                Difficulty = Difficulty,
+                Fullscreen = Fullscreen,
+                Animation = Animation,
+                Seed = Seed,
+                Mode = Mode,
+                CovenantId = CovenantId,
+                CivilizationId = CivilizationId,
+                MusicVolume = MusicVolume,
+                SfxVolume = SfxVolume,
+                PanelsCollapsed = PanelsCollapsed,
+                TutorialDone = TutorialDone,
+                BestEndlessTurn = BestEndlessTurn
+            };
+
+            Array.Copy(_panelOffsets, copy._panelOffsets, _panelOffsets.Length);
+            return copy;
+        }
 
         /// <summary>
         /// Converte em texto no formato <c>chave=valor;chave=valor</c>.
@@ -157,6 +189,12 @@ namespace SovereignOfAshes.Session
             text.Append(";sfx=").Append(SfxVolume.ToString(CultureInfo.InvariantCulture));
             text.Append(";panels=").Append(PanelsCollapsed.ToString(CultureInfo.InvariantCulture));
             text.Append(";tutorial=").Append(TutorialDone ? 1 : 0);
+
+            for (int i = 0; i < _panelOffsets.Length; i++)
+            {
+                text.Append(";po").Append(i).Append('=').Append(_panelOffsets[i].ToString(CultureInfo.InvariantCulture));
+            }
+
             return text.ToString();
         }
 
@@ -228,6 +266,16 @@ namespace SovereignOfAshes.Session
                         break;
                     case "tutorial":
                         settings.TutorialDone = number != 0;
+                        break;
+                    default:
+                        // po0..po5: deslocamento dos painéis (x e y de cada um).
+                        if (key.Length == 3 && key.StartsWith("po") && key[2] >= '0' && key[2] <= '5')
+                        {
+                            int index = key[2] - '0';
+                            (int X, int Y) current = settings.GetPanelOffset(index / 2);
+                            settings.SetPanelOffset(index / 2, index % 2 == 0 ? number : current.X, index % 2 == 0 ? current.Y : number);
+                        }
+
                         break;
                 }
             }

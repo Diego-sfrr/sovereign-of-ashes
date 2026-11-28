@@ -46,6 +46,32 @@ namespace SovereignOfAshes.Tests
         }
 
         [Test]
+        public void PanelOffsets_SurviveSaveLoadAndClone()
+        {
+            var settings = new GameSettings();
+            settings.SetPanelOffset(0, 120, -40);
+            settings.SetPanelOffset(2, -300, 75);
+
+            GameSettings loaded = GameSettings.Parse(settings.Serialize());
+            Assert.AreEqual((120, -40), loaded.GetPanelOffset(0));
+            Assert.AreEqual((0, 0), loaded.GetPanelOffset(1));
+            Assert.AreEqual((-300, 75), loaded.GetPanelOffset(2));
+            Assert.AreEqual((120, -40), settings.Clone().GetPanelOffset(0));
+        }
+
+        [Test]
+        public void PanelOffsets_AreClampedAndIgnoreInvalidIndexes()
+        {
+            var settings = new GameSettings();
+            settings.SetPanelOffset(1, 999999, -999999);
+            settings.SetPanelOffset(7, 5, 5);
+
+            Assert.AreEqual((4000, -4000), settings.GetPanelOffset(1));
+            Assert.AreEqual((0, 0), settings.GetPanelOffset(7));
+            Assert.AreEqual((0, 0), GameSettings.Parse("po9=5;pox=3;po1=abc").GetPanelOffset(0));
+        }
+
+        [Test]
         public void TutorialDone_SurvivesSaveAndLoad()
         {
             var settings = new GameSettings { TutorialDone = true };

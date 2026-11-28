@@ -128,6 +128,16 @@ namespace SovereignOfAshes.Presentation
             yield return new WaitForSeconds(0.3f);
 
             yield return Capture("01-inicio");
+
+            // Painéis em outros lugares (o jogador arrasta pela barrinha do alto).
+            _view.MovePanelForCapture(0, 520, 60);
+            _view.MovePanelForCapture(1, -420, 200);
+            _view.MovePanelForCapture(2, 700, 120);
+            yield return new WaitForSeconds(0.3f);
+            yield return Capture("m10-paineis-movidos");
+            _view.MovePanelForCapture(0, 0, 0);
+            _view.MovePanelForCapture(1, 0, 0);
+            _view.MovePanelForCapture(2, 0, 0);
             _view.ShowToastForCapture("victory");
             yield return new WaitForSeconds(1.0f);
             yield return Capture("m6-aviso-conquista");
